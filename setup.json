@@ -1,0 +1,35 @@
+{
+    "version": "0.1.0",
+    "name": "aiida_codtools",
+    "url": "https://github.com/aiidateam/aiida-codtools",
+    "license": "MIT License",
+    "author": "Sebastiaan P. Huber",
+    "author_email": "mail@sphuber.net",
+    "description": "The AiiDA plugin for COD tools",
+    "classifiers": [
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 2.7",
+        "Development Status :: 4 - Beta"
+    ],
+    "install_requires": [
+        "aiida"
+    ],
+    "entry_points": {
+        "aiida.calculations": [
+            "codtools.ciffilter = aiida_codtools.ciffilter:CiffilterCalculation",
+            "codtools.cifcellcontents = aiida_codtools.cifcellcontents:CifcellcontentsCalculation",
+            "codtools.cifcodcheck = aiida_codtools.cifcodcheck:CifcodcheckCalculation",
+            "codtools.cifcoddeposit = aiida_codtools.cifcoddeposit:CifcoddepositCalculation",
+            "codtools.cifcodnumbers = aiida_codtools.cifcodnumbers:CifcodnumbersCalculation",
+            "codtools.cifsplitprimitive = aiida_codtools.cifsplitprimitive:CifsplitprimitiveCalculation",
+        ],
+        "aiida.parsers": [
+            "codtools.cifcellcontents = aiida_codtools.cifcellcontents:CifcellcontentsParser",
+            "codtools.cifcodcheck = aiida_codtools.cifcodcheck:CifcodcheckParser",
+            "codtools.cifcoddeposit = aiida_codtools.cifcoddeposit:CifcoddepositParser",
+            "codtools.cifcodnumbers = aiida_codtools.cifcodnumbers:CifcodnumbersParser",
+            "codtools.ciffilter = aiida_codtools.ciffilter:CiffilterParser",
+            "codtools.cifsplitprimitive = aiida_codtools.cifsplitprimitive:CifsplitprimitiveParser"
+        ]
+    }
+}
