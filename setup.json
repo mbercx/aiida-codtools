@@ -16,20 +16,20 @@
     ],
     "entry_points": {
         "aiida.calculations": [
-            "codtools.ciffilter = aiida_codtools.ciffilter:CiffilterCalculation",
-            "codtools.cifcellcontents = aiida_codtools.cifcellcontents:CifcellcontentsCalculation",
-            "codtools.cifcodcheck = aiida_codtools.cifcodcheck:CifcodcheckCalculation",
-            "codtools.cifcoddeposit = aiida_codtools.cifcoddeposit:CifcoddepositCalculation",
-            "codtools.cifcodnumbers = aiida_codtools.cifcodnumbers:CifcodnumbersCalculation",
-            "codtools.cifsplitprimitive = aiida_codtools.cifsplitprimitive:CifsplitprimitiveCalculation",
+            "codtools.ciffilter = aiida_codtools.calculations.ciffilter:CiffilterCalculation",
+            "codtools.cifcellcontents = aiida_codtools.calculations.cifcellcontents:CifcellcontentsCalculation",
+            "codtools.cifcodcheck = aiida_codtools.calculations.cifcodcheck:CifcodcheckCalculation",
+            "codtools.cifcoddeposit = aiida_codtools.calculations.cifcoddeposit:CifcoddepositCalculation",
+            "codtools.cifcodnumbers = aiida_codtools.calculations.cifcodnumbers:CifcodnumbersCalculation",
+            "codtools.cifsplitprimitive = aiida_codtools.calculations.cifsplitprimitive:CifsplitprimitiveCalculation",
         ],
         "aiida.parsers": [
-            "codtools.cifcellcontents = aiida_codtools.cifcellcontents:CifcellcontentsParser",
-            "codtools.cifcodcheck = aiida_codtools.cifcodcheck:CifcodcheckParser",
-            "codtools.cifcoddeposit = aiida_codtools.cifcoddeposit:CifcoddepositParser",
-            "codtools.cifcodnumbers = aiida_codtools.cifcodnumbers:CifcodnumbersParser",
-            "codtools.ciffilter = aiida_codtools.ciffilter:CiffilterParser",
-            "codtools.cifsplitprimitive = aiida_codtools.cifsplitprimitive:CifsplitprimitiveParser"
+            "codtools.cifcellcontents = aiida_codtools.parsers.cifcellcontents:CifcellcontentsParser",
+            "codtools.cifcodcheck = aiida_codtools.parsers.cifcodcheck:CifcodcheckParser",
+            "codtools.cifcoddeposit = aiida_codtools.parsers.cifcoddeposit:CifcoddepositParser",
+            "codtools.cifcodnumbers = aiida_codtools.parsers.cifcodnumbers:CifcodnumbersParser",
+            "codtools.ciffilter = aiida_codtools.parsers.ciffilter:CiffilterParser",
+            "codtools.cifsplitprimitive = aiida_codtools.parsers.cifsplitprimitive:CifsplitprimitiveParser"
         ]
     }
 }
