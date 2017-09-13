@@ -21,7 +21,7 @@
             "codtools.cifcodcheck = aiida_codtools.calculations.cifcodcheck:CifcodcheckCalculation",
             "codtools.cifcoddeposit = aiida_codtools.calculations.cifcoddeposit:CifcoddepositCalculation",
             "codtools.cifcodnumbers = aiida_codtools.calculations.cifcodnumbers:CifcodnumbersCalculation",
-            "codtools.cifsplitprimitive = aiida_codtools.calculations.cifsplitprimitive:CifsplitprimitiveCalculation",
+            "codtools.cifsplitprimitive = aiida_codtools.calculations.cifsplitprimitive:CifsplitprimitiveCalculation"
         ],
         "aiida.parsers": [
             "codtools.cifcellcontents = aiida_codtools.parsers.cifcellcontents:CifcellcontentsParser",
