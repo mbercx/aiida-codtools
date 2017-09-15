@@ -70,7 +70,7 @@ class CiffilterCalculation(JobCalculation):
                                               self.__class__.__name__))
 
     def _prepare_for_submission(self, tempfolder, inputdict):
-        from aiida.orm.calculation.job.codtools import commandline_params_from_dict
+        from aiida_codtools.calculations import commandline_params_from_dict
         import shutil
 
         try:
