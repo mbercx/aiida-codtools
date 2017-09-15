@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from aiida.parsers.plugins.codtools.baseclass import BaseCodtoolsParser
-from aiida.orm.calculation.job.codtools.cifsplitprimitive import CifsplitprimitiveCalculation
+from aiida_codtools.parsers.baseclass import BaseCodtoolsParser
+from aiida_codtools.calculations.cifsplitprimitive import CifsplitprimitiveCalculation
 
 class CifsplitprimitiveParser(BaseCodtoolsParser):
     """

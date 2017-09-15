@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from aiida.orm.calculation.job.codtools.ciffilter import CiffilterCalculation
+from aiida_codtools.calculations.ciffilter import CiffilterCalculation
 
 class CifcodcheckCalculation(CiffilterCalculation):
     """

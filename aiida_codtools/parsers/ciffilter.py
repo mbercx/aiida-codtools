@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from aiida.parsers.plugins.codtools.baseclass import BaseCodtoolsParser
-from aiida.orm.calculation.job.codtools.ciffilter import CiffilterCalculation
+from aiida.orm import CalculationFactory
+from aiida_codtools.parsers.baseclass import BaseCodtoolsParser
+
 
 class CiffilterParser(BaseCodtoolsParser):
     """
@@ -11,5 +12,5 @@ class CiffilterParser(BaseCodtoolsParser):
         """
         Initialize the instance of CiffilterParser
         """
-        self._supported_calculation_class = CiffilterCalculation
+        self._supported_calculation_class = CalculationFactory('codtools.ciffilter')
         super(CiffilterParser, self).__init__(calc)

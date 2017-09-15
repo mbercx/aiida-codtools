@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from aiida.parsers.plugins.codtools.ciffilter import CiffilterParser
-from aiida.orm.calculation.job.codtools.cifcoddeposit import CifcoddepositCalculation
+from aiida_codtools.parsers.ciffilter import CiffilterParser
+from aiida_codtools.calculations.cifcoddeposit import CifcoddepositCalculation
 from aiida.common.extendeddicts import Enumerate
 
 class CoddepositionState(Enumerate):

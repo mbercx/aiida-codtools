@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from aiida.orm.calculation.job.codtools.ciffilter import CiffilterCalculation
+from aiida_codtools.calculations.ciffilter import CiffilterCalculation
 from aiida.common.datastructures import CalcInfo, CodeInfo
 from aiida.common.exceptions import InputValidationError
 
@@ -29,7 +29,7 @@ class CifcoddepositCalculation(CiffilterCalculation):
     def _prepare_for_submission(self, tempfolder, inputdict):
         from aiida.orm.data.cif import CifData
         from aiida.orm.data.parameter import ParameterData
-        from aiida.orm.calculation.job.codtools import commandline_params_from_dict
+        from aiida_codtools.calculations import commandline_params_from_dict
         import shutil
 
         try:

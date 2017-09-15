@@ -16,12 +16,12 @@ from aiida.common.folders import SandboxFolder
 from aiida.orm.data.cif import CifData
 from aiida.orm.data.parameter import ParameterData
 from aiida.common.exceptions import FeatureNotAvailable
-from aiida.orm.calculation.job.codtools.cifcellcontents import CifcellcontentsCalculation
-from aiida.orm.calculation.job.codtools.cifcodcheck import CifcodcheckCalculation
-from aiida.orm.calculation.job.codtools.ciffilter import CiffilterCalculation
-from aiida.parsers.plugins.codtools.cifcellcontents import CifcellcontentsParser
-from aiida.parsers.plugins.codtools.cifcodcheck import CifcodcheckParser
-from aiida.parsers.plugins.codtools.ciffilter import CiffilterParser
+from aiida_codtools.calculations.cifcellcontents import CifcellcontentsCalculation
+from aiida_codtools.calculations.cifcodcheck import CifcodcheckCalculation
+from aiida_codtools.calculations.ciffilter import CiffilterCalculation
+from aiida_codtools.parsers.cifcellcontents import CifcellcontentsParser
+from aiida_codtools.parsers.cifcodcheck import CifcodcheckParser
+from aiida_codtools.parsers.ciffilter import CiffilterParser
 from aiida.backends.testbase import AiidaTestCase
 
 
@@ -115,7 +115,7 @@ class TestCodtools(AiidaTestCase):
                           stdout_messages + stderr_messages)
 
     def test_4(self):
-        from aiida.parsers.plugins.codtools.cifcellcontents import CifcellcontentsParser
+        from aiida_codtools.parsers.cifcellcontents import CifcellcontentsParser
 
         stdout = '''4000000	C26 H26 Fe
 4000001	C24 H17 F5 Fe
@@ -157,7 +157,7 @@ class TestCodtools(AiidaTestCase):
                 '4000008': 'C2 H10 F Mn N2 O9 V3'}})
 
     def test_5(self):
-        from aiida.parsers.plugins.codtools.cifcoddeposit import CifcoddepositParser
+        from aiida_codtools.parsers.cifcoddeposit import CifcoddepositParser
 
         content = \
             """<!DOCTYPE html
@@ -225,7 +225,7 @@ cif_cod_check: - data_4000001: _publ_section_title is undefined"""
                                    'deposited into COD')
 
     def test_perl_error_detection(self):
-        from aiida.parsers.plugins.codtools.cifcellcontents import CifcellcontentsParser
+        from aiida_codtools.parsers.cifcellcontents import CifcellcontentsParser
         from aiida.common.exceptions import PluginInternalError
 
         stdout = "4000000	C26 H26 Fe\n"
@@ -256,7 +256,7 @@ cif_cod_check: - data_4000001: _publ_section_title is undefined"""
             parser._get_output_nodes(stdout_file, stderr_2_file)
 
     def test_cmdline_generation(self):
-        from aiida.orm.calculation.job.codtools import commandline_params_from_dict
+        from aiida_codtools.calculations import commandline_params_from_dict
 
         dictionary = {
             'start-data-block-number': '1234567',
