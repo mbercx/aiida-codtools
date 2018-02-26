@@ -14,6 +14,8 @@
             "codtools.cif_cod_check = aiida_codtools.calculations.cif_cod_check:CifCodCheckCalculation",
             "codtools.cif_cod_deposit = aiida_codtools.calculations.cif_cod_deposit:CifCodDepositCalculation",
             "codtools.cif_cod_numbers = aiida_codtools.calculations.cif_cod_numbers:CifCodNumbersCalculation",
+            "codtools.cif_filter = aiida_codtools.calculations.cif_filter:CifFilterCalculation",
+            "codtools.cif_select = aiida_codtools.calculations.cif_select:CifSelectCalculation",
             "codtools.cif_split_primitive = aiida_codtools.calculations.cif_split_primitive:CifSplitPrimitiveCalculation"
         ],
         "aiida.parsers": [
