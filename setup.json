@@ -25,6 +25,9 @@
             "codtools.cif_cod_deposit = aiida_codtools.parsers.cif_cod_deposit:CifCodDepositParser",
             "codtools.cif_cod_numbers = aiida_codtools.parsers.cif_cod_numbers:CifCodNumbersParser",
             "codtools.cif_split_primitive = aiida_codtools.parsers.cif_split_primitive:CifSplitPrimitiveParser"
+        ],
+        "console_scripts": [
+            "launch_misc_cif_import = aiida_codtools.cli.misc.cif_import:launch"
         ]
     },
     "extras_require": {
