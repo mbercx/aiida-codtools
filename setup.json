@@ -26,8 +26,12 @@
             "codtools.cif_cod_numbers = aiida_codtools.parsers.cif_cod_numbers:CifCodNumbersParser",
             "codtools.cif_split_primitive = aiida_codtools.parsers.cif_split_primitive:CifSplitPrimitiveParser"
         ],
+        "aiida.workflows": [
+            "codtools.cif_clean = aiida_codtools.workflows.cif_clean:CifCleanWorkChain"
+        ],
         "console_scripts": [
-            "launch_misc_cif_import = aiida_codtools.cli.misc.cif_import:launch"
+            "launch_misc_cif_import = aiida_codtools.cli.misc.cif_import:launch",
+            "launch_workflows_cif_clean = aiida_codtools.cli.workflows.cif_clean:launch"
         ]
     },
     "extras_require": {
