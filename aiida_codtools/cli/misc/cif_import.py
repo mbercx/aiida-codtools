@@ -5,45 +5,45 @@ from aiida.utils.cli import options
 
 
 @command()
-@options.group(help='the Group in which to store the raw imported CifData nodes')
+@options.group(help='Group in which to store the raw imported CifData nodes')
 @click.option(
     '-d', '--database', type=click.Choice(['cod', 'icsd', 'mpds']), default='cod', show_default=True,
-    help='select the database to import from'
+    help='Select the database to import from'
 )
 @click.option(
     '-m', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
-    help='maximum number of entries to import'
+    help='Maximum number of entries to import'
 )
 @click.option(
     '-x', '--number-species', type=click.INT, default=None, show_default=True,
-    help='when set, import only cif files with this number of different species'
+    help='Import only cif files with this number of different species'
 )
 @click.option(
     '-s', '--importer-server', type=click.STRING, required=False,
-    help='optional server address thats hosts the database'
+    help='Optional server address thats hosts the database'
 )
 @click.option(
-    '-h', '--importer-database-host', type=click.STRING, required=False,
-    help='optional hostname for the database'
+    '-h', '--importer-db-host', type=click.STRING, required=False,
+    help='Optional hostname for the database'
 )
 @click.option(
-    '-n', '--importer-database-name', type=click.STRING, required=False,
-    help='optional name for the database'
+    '-n', '--importer-db-name', type=click.STRING, required=False,
+    help='Optional name for the database'
 )
 @click.option(
-    '-p', '--importer-database-password', type=click.STRING, required=False,
-    help='optional password for the database'
+    '-p', '--importer-db-password', type=click.STRING, required=False,
+    help='Optional password for the database'
 )
 @click.option(
     '-u', '--importer-api-url', type=click.STRING, required=False,
-    help='optional API url for the database'
+    help='Optional API url for the database'
 )
 @click.option(
     '-a', '--importer-api-key', type=click.STRING, required=False,
-    help='optional API key for the database'
+    help='Optional API key for the database'
 )
-def launch(group, database, max_entries, number_species, importer_server, importer_database_host,
-    importer_database_name, importer_database_password, importer_api_url, importer_api_key):
+def launch(group, database, max_entries, number_species, importer_server, importer_db_host,
+    importer_db_name, importer_db_password, importer_api_url, importer_api_key):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -61,14 +61,14 @@ def launch(group, database, max_entries, number_species, importer_server, import
     if importer_server is not None:
         importer_parameters['server'] = importer_server
 
-    if importer_database_host is not None:
-        importer_parameters['host'] = importer_database_host
+    if importer_db_host is not None:
+        importer_parameters['host'] = importer_db_host
 
-    if importer_database_name is not None:
-        importer_parameters['db'] = importer_database_name
+    if importer_db_name is not None:
+        importer_parameters['db'] = importer_db_name
 
-    if importer_database_password is not None:
-        importer_parameters['passwd'] = importer_database_password
+    if importer_db_password is not None:
+        importer_parameters['passwd'] = importer_db_password
 
     if importer_api_url is not None:
         importer_parameters['url'] = importer_api_url
@@ -77,7 +77,25 @@ def launch(group, database, max_entries, number_species, importer_server, import
         importer_parameters['api_key'] = importer_api_key
 
     if number_species is not None:
-        query_parameters['number_of_elements'] = number_species
+
+        if database == 'mpds':
+
+            query_parameters = {
+                'query': {},
+                'collection': 'structures'
+            }
+
+            if number_species == 1:
+                query_parameters['query']['classes'] = 'unary'
+            elif number_species == 2:
+                query_parameters['query']['classes'] = 'binary'
+            elif number_species == 3:
+                query_parameters['query']['classes'] = 'ternary'
+            else:
+                raise ValueError('only unaries, binaries and ternaries are supported for {} database'.format(database))
+
+        else:
+            query_parameters['number_of_elements'] = number_species
 
     importer_class = DbImporterFactory(database)
     importer = importer_class(**importer_parameters)
