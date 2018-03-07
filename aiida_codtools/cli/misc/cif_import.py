@@ -76,26 +76,32 @@ def launch(group, database, max_entries, number_species, importer_server, import
     if importer_api_key is not None:
         importer_parameters['api_key'] = importer_api_key
 
-    if number_species is not None:
+    if database == 'mpds':
 
-        if database == 'mpds':
+        if number_species is None:
+            raise click.BadParameter('the number of species has to be defined for the {} database'.format(database))
 
-            query_parameters = {
-                'query': {},
-                'collection': 'structures'
-            }
+        query_parameters = {
+            'query': {},
+            'collection': 'structures'
+        }
 
-            if number_species == 1:
-                query_parameters['query']['classes'] = 'unary'
-            elif number_species == 2:
-                query_parameters['query']['classes'] = 'binary'
-            elif number_species == 3:
-                query_parameters['query']['classes'] = 'ternary'
-            else:
-                raise ValueError('only unaries, binaries and ternaries are supported for {} database'.format(database))
-
+        if number_species == 1:
+            query_parameters['query']['classes'] = 'unary'
+        elif number_species == 2:
+            query_parameters['query']['classes'] = 'binary'
+        elif number_species == 3:
+            query_parameters['query']['classes'] = 'ternary'
+        elif number_species == 4:
+            query_parameters['query']['classes'] = 'multinary'
+        elif number_species == 5:
+            query_parameters['query']['classes'] = 'quinary'
         else:
-            query_parameters['number_of_elements'] = number_species
+            raise click.BadParameter('only unaries through quinaries are supported by the {} database'
+                .format(database), param_hint='number_species')
+
+    else:
+        query_parameters['number_of_elements'] = number_species
 
     importer_class = DbImporterFactory(database)
     importer = importer_class(**importer_parameters)
@@ -134,7 +140,8 @@ def launch(group, database, max_entries, number_species, importer_server, import
                     counter += 1
                     click.echo('Newly stored CifData<{}> with source id <{}>'.format(cif.pk, source_id))
             except ValueError:
-                click.echo('Cif with source id <{}> has partial occupancies, skipping'.format(source_id))
+                click.echo('Cif with source id <{}> has occupancies that could not be converted to floats, skipping'
+                    .format(source_id))
                 continue
 
         if max_entries is not None and counter >= max_entries:
