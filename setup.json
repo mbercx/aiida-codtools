@@ -31,7 +31,7 @@
         ],
         "console_scripts": [
             "launch_misc_cif_import = aiida_codtools.cli.misc.cif_import:launch",
-            "launch_workflows_cif_clean = aiida_codtools.cli.workflows.cif_clean:launch"
+            "launch_workflow_cif_clean = aiida_codtools.cli.workflows.cif_clean:launch"
         ]
     },
     "extras_require": {
