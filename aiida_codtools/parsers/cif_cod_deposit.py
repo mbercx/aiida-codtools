@@ -20,7 +20,7 @@ cod_deposition_states = CodDepositionState((
 ))
 
 
-class CifCodDepositParser(CiffilterParser):
+class CifCodDepositParser(CifBaseParser):
     """
     Specific parser for the output of cif_cod_deposit script.
     """
