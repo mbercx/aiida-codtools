@@ -7,7 +7,7 @@ from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.utils import CalculationFactory
 from aiida.tools import get_kpoints_path
-from aiida.work.workchain import WorkChain, ToContext
+from aiida.work.workchain import WorkChain, ToContext, if_
 from aiida.work.workfunctions import workfunction
 
 
@@ -19,11 +19,14 @@ class CifCleanWorkChain(WorkChain):
     """
     WorkChain to clean a CifData node using the cif_filter and cif_select scripts of cod-tools
     It will first run cif_filter to correct syntax errors, followed by cif_select which will remove
-    various tags and canonicalize the remaining tags
+    various tags and canonicalize the remaining tags. If a group is passed for the group_structure
+    input, ASE will be used to parse the final cleaned CifData to construct a StructureData object
+    which will then be passed to the SeeKpath library to analyze it and return the primitive structure
     """
 
     ERROR_CIF_FILTER_FAILED = 1
     ERROR_CIF_SELECT_FAILED = 2
+    ERROR_SEEKPATH_FAILED = 3
 
     @classmethod
     def define(cls, spec):
@@ -41,20 +44,22 @@ class CifCleanWorkChain(WorkChain):
         spec.input('symprec', valid_type=Float, default=Float(5E-3),
             help='the symmetry precision used by SeeK-path for crystal symmetry refinement')
         spec.input('group_cif', valid_type=Group, required=False, non_db=True,
-            help='an optional Group node to which the final cleaned CifData node will be added')
+            help='an optional Group to which the final cleaned CifData node will be added')
         spec.input('group_structure', valid_type=Group, required=False, non_db=True,
-            help='an optional Group node to which the final reduced StructureData node will be added')
+            help='an optional Group to which the final reduced StructureData node will be added')
         spec.outline(
             cls.run_filter_calculation,
             cls.inspect_filter_calculation,
             cls.run_select_calculation,
             cls.inspect_select_calculation,
-            cls.create_reduced_structure,
+            if_(cls.should_create_structure)(
+                cls.create_reduced_structure,
+            ),
             cls.results,
         )
         spec.output('cif', valid_type=CifData,
             help='the cleaned CifData node')
-        spec.output('structure', valid_type=StructureData,
+        spec.output('structure', valid_type=StructureData, required=False,
             help='the primitive cell structure created with SeeK-path from the cleaned CifData')
 
     def run_filter_calculation(self):
@@ -125,32 +130,46 @@ class CifCleanWorkChain(WorkChain):
             self.report('aborting: the CifSelectCalculation did not return the required cif output')
             return self.ERROR_CIF_SELECT_FAILED
 
+    def should_create_structure(self):
+        """
+        Return whether the primitive structure should be created from the final cleaned CifData
+        Will be true if the 'group_structure' input is specified
+        """
+        return 'group_structure' in self.inputs
+
     def create_reduced_structure(self):
         """
         Create a StructureData from the CifData output node returned by the CifSelectCalculation and
         find the primitive cell structure through the SeeK-path library
         """
         result = cif_reduce_seekpath(self.ctx.cif, self.inputs.symprec)
-        self.ctx.structure = result['primitive_structure']
+
+        try:
+            self.ctx.structure = result['primitive_structure']
+        except AttributeError:
+            self.report('aborting: SeeKpath did not return a primitive structure')
+            return self.ERROR_SEEKPATH_FAILED
 
     def results(self):
         """
         The filter and select calculations were successful, so we return the desired output nodes
         """
-        cif = self.ctx.cif
-        structure = self.ctx.structure
+        returned_nodes = []
 
         if 'group_cif' in self.inputs:
+            cif = self.ctx.cif
             self.inputs.group_cif.add_nodes([cif])
+            self.out('cif', cif)
+            returned_nodes.append('CifData<{}>'.format(cif.pk))
 
         if 'group_structure' in self.inputs:
+            structure = self.ctx.structure
             self.inputs.group_structure.add_nodes([structure])
+            self.out('structure', structure)
+            returned_nodes.append('StructureData<{}>'.format(structure.pk))
 
-        self.out('cif', cif)
-        self.out('structure', structure)
 
-        self.report('workchain finished successfully, attached CifData<{}> and StructureData<{}>'
-            .format(cif.pk, structure.pk))
+        self.report('workchain finished successfully, returned nodes {}'.format(', '.join(returned_nodes)))
 
 
 @workfunction
