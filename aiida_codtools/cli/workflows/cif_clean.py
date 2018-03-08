@@ -34,17 +34,26 @@ from aiida.utils.cli import options
     '-f', '--skip-check', is_flag=True, default=False,
     help='Skip the check whether the CifData node is an input to an already submitted workchain',
 )
+@click.option(
+    '-p', '--parse-engine', type=click.Choice(['ase', 'pymatgen']), default='pymatgen', show_default=True,
+    help='Select the parse engine for parsing the structure from the cleaned cif if requested'
+)
 @options.daemon()
 @options.max_num_machines()
 @options.max_wallclock_seconds()
 def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, node,
-    max_entries, skip_check, max_num_machines, max_wallclock_seconds, daemon):
+    max_entries, skip_check, parse_engine, max_num_machines, max_wallclock_seconds, daemon):
     """
-    Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes
+    Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes. It will use
+    the cif_filter and cif_select scripts of cod-tools to clean the input cif file. Additionally, if the
+    'group-structure' option is passed, the workchain will also attempt to use the given parse engine
+    to parse the cleaned CifData to obtain the structure and then use SeeKpath to find the
+    primitive structure, which, if successful, will be added to the group-structure group
     """
     from datetime import datetime
     from aiida.common.exceptions import NotExistent
     from aiida.orm import load_node
+    from aiida.orm.data.str import Str
     from aiida.orm.data.parameter import ParameterData
     from aiida.orm.group import Group
     from aiida.orm.querybuilder import QueryBuilder
@@ -89,6 +98,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
             'cif': cif,
             'cif_filter': cif_filter,
             'cif_select': cif_select,
+            'parse_engine': Str(parse_engine),
             'options': ParameterData(dict=get_default_options(max_num_machines, max_wallclock_seconds))
         }
 
