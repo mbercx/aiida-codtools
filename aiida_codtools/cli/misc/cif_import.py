@@ -77,6 +77,9 @@ def launch(group, database, max_entries, number_species, importer_server, import
     if importer_api_key is not None:
         importer_parameters['api_key'] = importer_api_key
 
+    importer_class = DbImporterFactory(database)
+    importer = importer_class(**importer_parameters)
+
     if database == 'mpds':
 
         if number_species is None:
@@ -106,9 +109,6 @@ def launch(group, database, max_entries, number_species, importer_server, import
         if number_species is not None:
             query_parameters['number_of_elements'] = number_species
 
-    importer_class = DbImporterFactory(database)
-    importer = importer_class(**importer_parameters)
-
     try:
         query_results = importer.query(**query_parameters)
     except BaseException as exception:
@@ -120,6 +120,7 @@ def launch(group, database, max_entries, number_species, importer_server, import
     click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
 
     counter = 0
+
     for entry in query_results:
 
         source_id = entry.source['id']
@@ -150,5 +151,6 @@ def launch(group, database, max_entries, number_species, importer_server, import
 
         if max_entries is not None and counter >= max_entries:
             click.echo('Maximum number of entries {} stored'.format(max_entries))
-            click.echo('Stopping cif import on {}'.format(datetime.utcnow().isoformat()))
             break
+
+    click.echo('Stopping cif import on {}'.format(datetime.utcnow().isoformat()))
