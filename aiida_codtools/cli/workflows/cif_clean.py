@@ -42,6 +42,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     """
     Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes
     """
+    from datetime import datetime
     from aiida.common.exceptions import NotExistent
     from aiida.orm import load_node
     from aiida.orm.data.parameter import ParameterData
@@ -74,12 +75,14 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     else:
         nodes = group_cif_raw.nodes
 
+    click.echo('Starting cif clean on {}'.format(datetime.utcnow().isoformat()))
+
     counter = 0
 
     for cif in nodes:
 
         if not skip_check and cif.pk in completed_cif_nodes:
-            click.echo('CifData<{}> already submitted, skipping'.format(cif.pk))
+            click.echo('CifData<{}> skipped: already submitted'.format(cif.pk))
             continue
 
         inputs = {
@@ -97,13 +100,15 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
 
         if daemon:
             workchain = submit(CifCleanWorkChain, **inputs)
-            click.echo('Submitted {}<{}> for CifData<{}>'.format(CifCleanWorkChain.__name__, workchain.pk, cif.pk))
+            click.echo('CifData<{}> submitting: {}<{}>'.format(cif.pk, CifCleanWorkChain.__name__, workchain.pk))
         else:
-            click.echo('Running {} for CifData<{}>'.format(CifCleanWorkChain.__name__, cif.pk))
+            click.echo('CifData<{}> running: {}'.format(cif.pk, CifCleanWorkChain.__name__))
             run(CifCleanWorkChain, **inputs)
 
         counter += 1
 
         if max_entries is not None and counter >= max_entries:
-            click.echo('Maximum number of entries {} submitted, exiting'.format(max_entries))
+            click.echo('Maximum number of entries {} completed'.format(max_entries))
             break
+
+    click.echo('Stopping cif clean on {}'.format(datetime.utcnow().isoformat()))
