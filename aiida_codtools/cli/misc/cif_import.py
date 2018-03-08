@@ -11,7 +11,7 @@ from aiida.utils.cli import options
     help='Select the database to import from'
 )
 @click.option(
-    '-m', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
+    '-M', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
     help='Maximum number of entries to import'
 )
 @click.option(
@@ -52,6 +52,7 @@ def launch(group, database, max_entries, number_species, importer_server, import
     explicitly for the database, it is advised to use separate groups for different structural databases.
     """
     from CifFile.StarFile import StarError
+    from datetime import datetime
     from urllib2 import HTTPError
     from aiida.tools.dbimporters import DbImporterFactory
 
@@ -101,7 +102,9 @@ def launch(group, database, max_entries, number_species, importer_server, import
                 .format(database), param_hint='number_species')
 
     else:
-        query_parameters['number_of_elements'] = number_species
+
+        if number_species is not None:
+            query_parameters['number_of_elements'] = number_species
 
     importer_class = DbImporterFactory(database)
     importer = importer_class(**importer_parameters)
@@ -114,23 +117,25 @@ def launch(group, database, max_entries, number_species, importer_server, import
 
     existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
 
+    click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
+
     counter = 0
     for entry in query_results:
 
         source_id = entry.source['id']
 
         if source_id in existing_cif_nodes:
-            click.echo('Cif with source id <{}> already present in group {}'.format(source_id, group.name))
+            click.echo('Cif<{}> skipped: already present in group {}'.format(source_id, group.name))
             continue
 
         try:
             cif = entry.get_cif_node()
         except (StarError, HTTPError) as exception:
-            click.echo('Encountered an error retrieving cif data: {}'.format(exception))
+            click.echo('Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(source_id, exception))
         else:
             try:
                 if cif.has_partial_occupancies():
-                    click.echo('Cif with source id <{}> has partial occupancies, skipping'.format(source_id))
+                    click.echo('Cif<{}> skipped: contains partial occupancies'.format(source_id))
                     continue
                 else:
                     cif.store()
@@ -138,12 +143,12 @@ def launch(group, database, max_entries, number_species, importer_server, import
                     group.add_nodes([cif])
 
                     counter += 1
-                    click.echo('Newly stored CifData<{}> with source id <{}>'.format(cif.pk, source_id))
+                    click.echo('Cif<{}> added: new CifData<{}> added to group<{}>'.format(source_id, cif.pk, group.name))
             except ValueError:
-                click.echo('Cif with source id <{}> has occupancies that could not be converted to floats, skipping'
-                    .format(source_id))
+                click.echo('Cif<{}> skipped: contains occupancies that could not be converted to floats'.format(source_id))
                 continue
 
         if max_entries is not None and counter >= max_entries:
-            click.echo('Maximum number of entries {} stored, exiting'.format(max_entries))
+            click.echo('Maximum number of entries {} stored'.format(max_entries))
+            click.echo('Stopping cif import on {}'.format(datetime.utcnow().isoformat()))
             break
