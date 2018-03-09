@@ -19,6 +19,10 @@ from aiida.utils.cli import options
     help='Import only cif files with this number of different species'
 )
 @click.option(
+    '-o', '--skip-partial-occupancies', is_flag=True, default=False,
+    help='Skip entries that have partial occupancies'
+)
+@click.option(
     '-s', '--importer-server', type=click.STRING, required=False,
     help='Optional server address thats hosts the database'
 )
@@ -42,8 +46,8 @@ from aiida.utils.cli import options
     '-a', '--importer-api-key', type=click.STRING, required=False,
     help='Optional API key for the database'
 )
-def launch(group, database, max_entries, number_species, importer_server, importer_db_host,
-    importer_db_name, importer_db_password, importer_api_url, importer_api_key):
+def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server,
+    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -135,7 +139,7 @@ def launch(group, database, max_entries, number_species, importer_server, import
             click.echo('Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(source_id, exception))
         else:
             try:
-                if cif.has_partial_occupancies():
+                if skip_partial_occupancies and cif.has_partial_occupancies():
                     click.echo('Cif<{}> skipped: contains partial occupancies'.format(source_id))
                     continue
                 else:
