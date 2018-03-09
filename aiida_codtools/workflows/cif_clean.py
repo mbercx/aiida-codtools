@@ -9,14 +9,12 @@ from aiida.orm.utils import CalculationFactory
 from aiida.tools import get_kpoints_path
 from aiida.work.workchain import WorkChain, ToContext, if_
 from aiida.work.workfunctions import workfunction
+from aiida_codtools.common.exceptions import CifParseError
+from seekpath.hpkot import SymmetryDetectionError
 
 
 CifFilterCalculation = CalculationFactory('codtools.cif_filter')
 CifSelectCalculation = CalculationFactory('codtools.cif_select')
-
-
-class CifParseError(BaseException):
-    pass
 
 
 class CifCleanWorkChain(WorkChain):
@@ -155,6 +153,9 @@ class CifCleanWorkChain(WorkChain):
             parser_engine = self.inputs.parse_engine.value
             self.report('parse engine {} failed to parse the cif'.format(parser_engine))
             return
+        except SymmetryDetectionError as exception:
+            self.report('SeeKpath failed to determine the primitive structure')
+            return
 
         try:
             self.ctx.structure = result['primitive_structure']
@@ -200,4 +201,7 @@ def primitive_structure_from_cif(cif, parse_engine, symprec):
     except BaseException as exception:
         raise CifParseError(traceback.format_exc())
 
-    return get_kpoints_path(structure, symprec=symprec) 
+    try:
+        seekpath_results = get_kpoints_path(structure, symprec=symprec)
+    except SymmetryDetectionError as exception:
+        raise SymmetryDetectionError(traceback.format_exc())
