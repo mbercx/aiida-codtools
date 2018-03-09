@@ -19,6 +19,10 @@ from aiida.utils.cli import options
     help='Import only cif files with this number of different species'
 )
 @click.option(
+    '-o', '--skip-partial-occupancies', is_flag=True, default=False,
+    help='Skip entries that have partial occupancies'
+)
+@click.option(
     '-s', '--importer-server', type=click.STRING, required=False,
     help='Optional server address thats hosts the database'
 )
@@ -42,8 +46,8 @@ from aiida.utils.cli import options
     '-a', '--importer-api-key', type=click.STRING, required=False,
     help='Optional API key for the database'
 )
-def launch(group, database, max_entries, number_species, importer_server, importer_db_host,
-    importer_db_name, importer_db_password, importer_api_url, importer_api_key):
+def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server,
+    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -51,12 +55,14 @@ def launch(group, database, max_entries, number_species, importer_server, import
     is no guarantee that these id's do not overlap between different structural databases and we do not check
     explicitly for the database, it is advised to use separate groups for different structural databases.
     """
+    import inspect
     from CifFile.StarFile import StarError
     from datetime import datetime
     from urllib2 import HTTPError
     from aiida.tools.dbimporters import DbImporterFactory
 
     importer_parameters = {}
+    launch_paramaters = {}
     query_parameters = {}
 
     if importer_server is not None:
@@ -109,6 +115,20 @@ def launch(group, database, max_entries, number_species, importer_server, import
         if number_species is not None:
             query_parameters['number_of_elements'] = number_species
 
+
+    # Collect the dictionary of not None parameters passed to the launch script and print to screen
+    local_vars = locals()
+    for arg in inspect.getargspec(launch.callback).args:
+        if arg in local_vars and local_vars[arg]:
+            launch_paramaters[arg] = local_vars[arg]
+
+    click.echo('=' * 80)
+    click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
+    click.echo('Launch parameters: {}'.format(launch_paramaters))
+    click.echo('Importer parameters: {}'.format(importer_parameters))
+    click.echo('Query parameters: {}'.format(query_parameters))
+    click.echo('-' * 80)
+
     try:
         query_results = importer.query(**query_parameters)
     except BaseException as exception:
@@ -116,8 +136,6 @@ def launch(group, database, max_entries, number_species, importer_server, import
         return
 
     existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
-
-    click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
 
     counter = 0
 
@@ -135,22 +153,20 @@ def launch(group, database, max_entries, number_species, importer_server, import
             click.echo('Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(source_id, exception))
         else:
             try:
-                if cif.has_partial_occupancies():
+                if skip_partial_occupancies and cif.has_partial_occupancies():
                     click.echo('Cif<{}> skipped: contains partial occupancies'.format(source_id))
-                    continue
                 else:
                     cif.store()
-
                     group.add_nodes([cif])
-
                     counter += 1
-                    click.echo('Cif<{}> added: new CifData<{}> added to group<{}>'.format(source_id, cif.pk, group.name))
+                    click.echo('Cif<{}> added: new CifData<{}> to group {}'.format(source_id, cif.pk, group.name))
             except ValueError:
-                click.echo('Cif<{}> skipped: contains occupancies that could not be converted to floats'.format(source_id))
-                continue
+                click.echo('Cif<{}> skipped: some occupancies could not be converted to floats'.format(source_id))
 
         if max_entries is not None and counter >= max_entries:
+            click.echo('-' * 80)
             click.echo('Maximum number of entries {} stored'.format(max_entries))
             break
 
     click.echo('Stopping cif import on {}'.format(datetime.utcnow().isoformat()))
+    click.echo('=' * 80)
