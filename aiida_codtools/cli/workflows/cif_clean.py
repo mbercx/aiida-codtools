@@ -14,13 +14,16 @@ from aiida.utils.cli import options
     help='Code that references the codtools cif_select script'
 )
 @options.group(
-    '--group-cif-raw', help='Group with the raw CifData nodes'
+    '--group-cif-raw', help='Group with the raw CifData nodes to be cleaned'
 )
 @options.group(
-    '--group-cif-clean', required=False, help='Group in which to store the cleaned CifData nodes'
+    '--group-cif-clean', required=False, help='Group to which to add the cleaned CifData nodes'
 )
 @options.group(
-    '--group-structure', required=False, help='Group in which to store the final StructureData nodes'
+    '--group-structure', required=False, help='Group to which to add the final StructureData nodes'
+)
+@options.group(
+    '--group-workchain', required=False, help='Group to which to add the WorkChain nodes'
 )
 @click.option(
     '-n', '--node', type=click.INT, default=None, required=False,
@@ -28,7 +31,7 @@ from aiida.utils.cli import options
 )
 @click.option(
     '-M', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
-    help='Maximum number of entries to import'
+    help='Maximum number of CifData entries to clean'
 )
 @click.option(
     '-f', '--skip-check', is_flag=True, default=False,
@@ -41,7 +44,7 @@ from aiida.utils.cli import options
 @options.daemon()
 @options.max_num_machines()
 @options.max_wallclock_seconds()
-def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, node,
+def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, group_workchain, node,
     max_entries, skip_check, parse_engine, max_num_machines, max_wallclock_seconds, daemon):
     """
     Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes. It will use
@@ -58,7 +61,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     from aiida.orm.group import Group
     from aiida.orm.querybuilder import QueryBuilder
     from aiida.orm.utils import CalculationFactory, DataFactory, WorkflowFactory
-    from aiida.work.launch import run, submit
+    from aiida.work.launch import run_get_node, submit
     from aiida_quantumespresso.utils.resources import get_default_options
 
     CifData = DataFactory('cif')
@@ -113,7 +116,10 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
             click.echo('CifData<{}> submitting: {}<{}>'.format(cif.pk, CifCleanWorkChain.__name__, workchain.pk))
         else:
             click.echo('CifData<{}> running: {}'.format(cif.pk, CifCleanWorkChain.__name__))
-            run(CifCleanWorkChain, **inputs)
+            result, workchain = run_get_node(CifCleanWorkChain, **inputs)
+
+        if group_workchain is not None:
+            group_workchain.add_nodes([workchain])
 
         counter += 1
 
