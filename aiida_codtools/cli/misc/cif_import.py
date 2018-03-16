@@ -43,7 +43,7 @@ from aiida.utils.cli import options
     help='Optional API url for the database'
 )
 @click.option(
-    '-a', '--importer-api-key', type=click.STRING, required=False,
+    '-k', '--importer-api-key', type=click.STRING, required=False,
     help='Optional API key for the database'
 )
 @click.option(
