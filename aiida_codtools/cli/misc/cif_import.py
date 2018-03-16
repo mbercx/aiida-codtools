@@ -31,7 +31,7 @@ from aiida.utils.cli import options
     help='Optional hostname for the database'
 )
 @click.option(
-    '-n', '--importer-db-name', type=click.STRING, required=False,
+    '-m', '--importer-db-name', type=click.STRING, required=False,
     help='Optional name for the database'
 )
 @click.option(
@@ -46,8 +46,12 @@ from aiida.utils.cli import options
     '-a', '--importer-api-key', type=click.STRING, required=False,
     help='Optional API key for the database'
 )
+@click.option(
+    '-n', '--dry-run', is_flag=True, default=False,
+    help='Perform a dry-run'
+)
 def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server,
-    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key):
+    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key, dry_run):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -156,10 +160,13 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
                 if skip_partial_occupancies and cif.has_partial_occupancies():
                     click.echo('Cif<{}> skipped: contains partial occupancies'.format(source_id))
                 else:
-                    cif.store()
-                    group.add_nodes([cif])
+                    if not dry_run:
+                        cif.store()
+                        group.add_nodes([cif])
+                        click.echo('Cif<{}> added: new CifData<{}> to group {}'.format(source_id, cif.pk, group.name))
+                    else:
+                        click.echo('Cif<{}> would have added: CifData<{}> to group {}'.format(source_id, cif.uuid, group.name))
                     counter += 1
-                    click.echo('Cif<{}> added: new CifData<{}> to group {}'.format(source_id, cif.pk, group.name))
             except ValueError:
                 click.echo('Cif<{}> skipped: some occupancies could not be converted to floats'.format(source_id))
 
