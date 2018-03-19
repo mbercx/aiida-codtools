@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from aiida.common.extendeddicts import AttributeDict
 from aiida.orm import Code, Group
-from aiida.orm.data.cif import CifData
+from aiida.orm.data.cif import CifData, InvalidOccupationsError
 from aiida.orm.data.base import Float, Str
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
@@ -9,14 +9,12 @@ from aiida.orm.utils import CalculationFactory
 from aiida.tools import get_kpoints_path
 from aiida.work.workchain import WorkChain, ToContext, if_
 from aiida.work.workfunctions import workfunction
+from aiida_codtools.common.exceptions import CifParseError
+from seekpath.hpkot import SymmetryDetectionError
 
 
 CifFilterCalculation = CalculationFactory('codtools.cif_filter')
 CifSelectCalculation = CalculationFactory('codtools.cif_select')
-
-
-class CifParseError(BaseException):
-    pass
 
 
 class CifCleanWorkChain(WorkChain):
@@ -31,7 +29,11 @@ class CifCleanWorkChain(WorkChain):
 
     ERROR_CIF_FILTER_FAILED = 1
     ERROR_CIF_SELECT_FAILED = 2
-    ERROR_CIF_PARSE_STRUCTURE_FAILED = 3
+    ERROR_CIF_HAS_NO_ATOMIC_SITES = 3
+    ERROR_CIF_HAS_UNKNOWN_SPECIES = 4
+    ERROR_CIF_HAS_INVALID_OCCUPANCIES = 5
+    ERROR_CIF_STRUCTURE_PARSING_FAILED = 6
+    ERROR_SEEKPATH_SYMMETRY_DETECTION_FAILED = 7
 
     @classmethod
     def define(cls, spec):
@@ -49,7 +51,9 @@ class CifCleanWorkChain(WorkChain):
         spec.input('parse_engine', valid_type=Str, default=Str('pymatgen'),
             help='the atomic structure engine to parse the cif and create the structure')
         spec.input('symprec', valid_type=Float, default=Float(5E-3),
-            help='the symmetry precision used by SeeK-path for crystal symmetry refinement')
+            help='the symmetry precision used by SeeKpath for crystal symmetry refinement')
+        spec.input('site_tolerance', valid_type=Float, default=Float(5E-4),
+            help='the fractional coordinate distance tolerance for finding overlapping sites (pymatgen only)')
         spec.input('group_cif', valid_type=Group, required=False, non_db=True,
             help='an optional Group to which the final cleaned CifData node will be added')
         spec.input('group_structure', valid_type=Group, required=False, non_db=True,
@@ -67,7 +71,7 @@ class CifCleanWorkChain(WorkChain):
         spec.output('cif', valid_type=CifData,
             help='the cleaned CifData node')
         spec.output('structure', valid_type=StructureData, required=False,
-            help='the primitive cell structure created with SeeK-path from the cleaned CifData')
+            help='the primitive cell structure created with SeeKpath from the cleaned CifData')
 
     def run_filter_calculation(self):
         """
@@ -146,21 +150,43 @@ class CifCleanWorkChain(WorkChain):
 
     def parse_cif_structure(self):
         """
-        Create a StructureData from the CifData output node returned by the CifSelectCalculation and
-        find the primitive cell structure through the SeeKpath library
+        Create a StructureData from the CifData output node returned by the CifSelectCalculation, using
+        the parsing engine specified in the inputs and if successful attempt to find the primitive cell
+        structure using the SeeKpath library
         """
-        try:
-            result = primitive_structure_from_cif(self.ctx.cif, self.inputs.parse_engine, self.inputs.symprec)
-        except CifParseError as exception:
-            parser_engine = self.inputs.parse_engine.value
-            self.report('parse engine {} failed to parse the cif'.format(parser_engine))
+        cif = self.ctx.cif
+        parse_engine = self.inputs.parse_engine
+
+        parse_inputs = {
+            'cif': cif,
+            'parse_engine': parse_engine,
+            'symprec': self.inputs.symprec,
+            'site_tolerance': self.inputs.site_tolerance,
+        }
+
+        if not cif.has_atomic_sites:
+            self.report('CifData<{}> has no atomic sites'.format(cif.pk))
+            self.ctx.finish_status = self.ERROR_CIF_HAS_NO_ATOMIC_SITES
+            return
+
+        if cif.has_unknown_species:
+            self.report('CifData<{}> has unknown species'.format(cif.pk))
+            self.ctx.finish_status = self.ERROR_CIF_HAS_UNKNOWN_SPECIES
             return
 
         try:
+            result = primitive_structure_from_cif(**parse_inputs)
+        except InvalidOccupationsError as exception:
+            self.ctx.finish_status = self.ERROR_CIF_HAS_INVALID_OCCUPANCIES
+            self.report('CifData<{}> has invalid atomic occupancies'.format(cif.pk))
+        except CifParseError as exception:
+            self.ctx.finish_status = self.ERROR_CIF_STRUCTURE_PARSING_FAILED
+            self.report('CifData<{}> could not be parsed by {}'.format(cif.pk, parse_engine.value))
+        except SymmetryDetectionError as exception:
+            self.ctx.finish_status = self.ERROR_SEEKPATH_SYMMETRY_DETECTION_FAILED
+            self.report('SeeKpath failed to determine the primitive structure of CifData<{}>'.format(cif.pk))
+        else:
             self.ctx.structure = result['primitive_structure']
-        except KeyError:
-            self.report('SeeKpath failed to return a primitive structure')
-            return
 
     def results(self):
         """
@@ -175,7 +201,7 @@ class CifCleanWorkChain(WorkChain):
             try:
                 structure = self.ctx.structure
             except AttributeError:
-                return self.ERROR_CIF_PARSE_STRUCTURE_FAILED
+                return self.ctx.finish_status
             else:
                 self.inputs.group_structure.add_nodes([structure])
                 self.out('structure', structure)
@@ -184,20 +210,29 @@ class CifCleanWorkChain(WorkChain):
 
 
 @workfunction
-def primitive_structure_from_cif(cif, parse_engine, symprec):
+def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
     """
-    This workfunction will take a CifData node, create a StructureData object from it
-    using the 'parse_engine' and pass it through SeeKpath to get the primitive cell
+    This workfunction will take a CifData node, attempt to create a StructureData object from it
+    using the 'parse_engine' and pass it through SeeKpath to try and get the primitive cell
 
     :param cif: the CifData node
     :param parse_engine: the parsing engine, supported libraries 'ase' and 'pymatgen'
     :param symprec: a Float node with symmetry precision for determining primitive cell in SeeKpath
+    :param site_tolerance: a Float node with the fractional coordinate distance tolerance for finding overlapping sites
+        This will only be used if the parse_engine is pymatgen
     """
     import traceback
 
     try:
-        structure = cif._get_aiida_structure(converter=parse_engine.value, store=False)
+        structure = cif._get_aiida_structure(converter=parse_engine.value, site_tolerance=site_tolerance, store=False)
+    except InvalidOccupationsError as exception:
+        raise InvalidOccupationsError(traceback.format_exc())
     except BaseException as exception:
         raise CifParseError(traceback.format_exc())
 
-    return get_kpoints_path(structure, symprec=symprec) 
+    try:
+        seekpath_results = get_kpoints_path(structure, symprec=symprec)
+    except SymmetryDetectionError as exception:
+        raise SymmetryDetectionError(traceback.format_exc())
+
+    return seekpath_results
