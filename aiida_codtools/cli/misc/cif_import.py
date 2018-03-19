@@ -107,7 +107,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         elif number_species == 3:
             query_parameters['query']['classes'] = 'ternary'
         elif number_species == 4:
-            query_parameters['query']['classes'] = 'multinary'
+            query_parameters['query']['classes'] = 'quaternary'
         elif number_species == 5:
             query_parameters['query']['classes'] = 'quinary'
         else:
@@ -153,7 +153,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
 
         try:
             cif = entry.get_cif_node()
-        except (StarError, HTTPError) as exception:
+        except (StarError, HTTPError, UnicodeDecodeError) as exception:
             click.echo('Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(source_id, exception))
         else:
             try:
