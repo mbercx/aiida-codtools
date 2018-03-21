@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from aiida.common.exceptions import UnsupportedSpeciesError
 from aiida.common.extendeddicts import AttributeDict
 from aiida.orm import Code, Group
 from aiida.orm.data.cif import CifData, InvalidOccupationsError
@@ -165,17 +166,20 @@ class CifCleanWorkChain(WorkChain):
         }
 
         if not cif.has_atomic_sites:
-            self.report('CifData<{}> has no atomic sites'.format(cif.pk))
             self.ctx.finish_status = self.ERROR_CIF_HAS_NO_ATOMIC_SITES
+            self.report('CifData<{}> has no atomic sites'.format(cif.pk))
             return
 
         if cif.has_unknown_species:
-            self.report('CifData<{}> has unknown species'.format(cif.pk))
             self.ctx.finish_status = self.ERROR_CIF_HAS_UNKNOWN_SPECIES
+            self.report('CifData<{}> has unknown species'.format(cif.pk))
             return
 
         try:
             result = primitive_structure_from_cif(**parse_inputs)
+        except UnsupportedSpeciesError as exception:
+            self.ctx.finish_status = self.ERROR_CIF_HAS_UNKNOWN_SPECIES
+            self.report('CifData<{}> has unknown species'.format(cif.pk))
         except InvalidOccupationsError as exception:
             self.ctx.finish_status = self.ERROR_CIF_HAS_INVALID_OCCUPANCIES
             self.report('CifData<{}> has invalid atomic occupancies'.format(cif.pk))
@@ -225,6 +229,8 @@ def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
 
     try:
         structure = cif._get_aiida_structure(converter=parse_engine.value, site_tolerance=site_tolerance, store=False)
+    except UnsupportedSpeciesError as exception:
+        raise UnsupportedSpeciesError(traceback.format_exc())
     except InvalidOccupationsError as exception:
         raise InvalidOccupationsError(traceback.format_exc())
     except BaseException as exception:
