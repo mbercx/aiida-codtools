@@ -14,7 +14,7 @@ from aiida.utils.cli import options
     help='Code that references the codtools cif_select script'
 )
 @options.group(
-    '--group-cif-raw', help='Group with the raw CifData nodes to be cleaned'
+    '--group-cif-raw', required=False, help='Group with the raw CifData nodes to be cleaned'
 )
 @options.group(
     '--group-cif-clean', required=False, help='Group to which to add the cleaned CifData nodes'
@@ -68,24 +68,31 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     CifFilterCalculation = CalculationFactory('codtools.cif_filter')
     CifCleanWorkChain = WorkflowFactory('codtools.cif_clean')
 
-    qb = QueryBuilder()
-    qb.append(CifFilterCalculation, tag='calculation')
-    qb.append(CifData, input_of='calculation', tag='data', project=['id'])
-    qb.append(Group, filters={'id': {'==': group_cif_raw.pk}}, group_of='data')
-    completed_cif_nodes = set(pk for entry in qb.all() for pk in entry)
-
     if node is not None:
+
         try:
             cif_data = load_node(node)
         except NotExistent:
-            click.BadParameter('node<{}> could not be loaded'.format(pk))
+            raise click.BadParameter('node<{}> could not be loaded'.format(node))
 
         if not isinstance(cif_data, CifData):
-            click.BadParameter('node<{}> is not a CifData node'.format(pk))
+            raise click.BadParameter('node<{}> is not a CifData node'.format(node))
 
         nodes = [cif_data]
-    else:
+        completed_cif_nodes = []
+
+    elif group_cif_raw is not None:
+
         nodes = group_cif_raw.nodes
+
+        qb = QueryBuilder()
+        qb.append(CifFilterCalculation, tag='calculation')
+        qb.append(CifData, input_of='calculation', tag='data', project=['id'])
+        qb.append(Group, filters={'id': {'==': group_cif_raw.pk}}, group_of='data')
+        completed_cif_nodes = set(pk for entry in qb.all() for pk in entry)
+
+    else:
+        raise click.BadParameter('you have to specify either --group-cif-raw or --node')
 
     click.echo('Starting cif clean on {}'.format(datetime.utcnow().isoformat()))
 
