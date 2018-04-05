@@ -47,11 +47,15 @@ from aiida.utils.cli import options
     help='Optional API key for the database'
 )
 @click.option(
+    '-c', '--count-entries', is_flag=True, default=False,
+    help='Return the number of entries the query yields and exit'
+)
+@click.option(
     '-n', '--dry-run', is_flag=True, default=False,
     help='Perform a dry-run'
 )
-def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server,
-    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key, dry_run):
+def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server, importer_db_host,
+    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, dry_run):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -126,12 +130,13 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         if arg in local_vars and local_vars[arg]:
             launch_paramaters[arg] = local_vars[arg]
 
-    click.echo('=' * 80)
-    click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
-    click.echo('Launch parameters: {}'.format(launch_paramaters))
-    click.echo('Importer parameters: {}'.format(importer_parameters))
-    click.echo('Query parameters: {}'.format(query_parameters))
-    click.echo('-' * 80)
+    if not count_entries:
+        click.echo('=' * 80)
+        click.echo('Starting cif import on {}'.format(datetime.utcnow().isoformat()))
+        click.echo('Launch parameters: {}'.format(launch_paramaters))
+        click.echo('Importer parameters: {}'.format(importer_parameters))
+        click.echo('Query parameters: {}'.format(query_parameters))
+        click.echo('-' * 80)
 
     try:
         query_results = importer.query(**query_parameters)
@@ -145,35 +150,50 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
 
     for entry in query_results:
 
+        # Some query result generators fetch in batches, so we cannot simply return the length of the result set
+        if count_entries:
+            counter += 1
+            continue
+
         source_id = entry.source['id']
 
         if source_id in existing_cif_nodes:
-            click.echo('Cif<{}> skipped: already present in group {}'.format(source_id, group.name))
+            click.echo('{} | Cif<{}> skipped: already present in group {}'.format(
+                datetime.utcnow().isoformat(), source_id, group.name))
             continue
 
         try:
             cif = entry.get_cif_node()
         except (StarError, HTTPError, UnicodeDecodeError) as exception:
-            click.echo('Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(source_id, exception))
+            click.echo('{} | Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(
+                datetime.utcnow().isoformat(), source_id, exception))
         else:
             try:
                 if skip_partial_occupancies and cif.has_partial_occupancies():
-                    click.echo('Cif<{}> skipped: contains partial occupancies'.format(source_id))
+                    click.echo('{} | Cif<{}> skipped: contains partial occupancies'.format(
+                        datetime.utcnow().isoformat(), source_id))
                 else:
                     if not dry_run:
                         cif.store()
                         group.add_nodes([cif])
-                        click.echo('Cif<{}> added: new CifData<{}> to group {}'.format(source_id, cif.pk, group.name))
+                        click.echo('{} | Cif<{}> added: new CifData<{}> to group {}'.format(
+                            datetime.utcnow().isoformat(), source_id, cif.pk, group.name))
                     else:
-                        click.echo('Cif<{}> would have added: CifData<{}> to group {}'.format(source_id, cif.uuid, group.name))
+                        click.echo('{} | Cif<{}> would have added: CifData<{}> to group {}'.format(
+                            datetime.utcnow().isoformat(), source_id, cif.uuid, group.name))
                     counter += 1
             except ValueError:
-                click.echo('Cif<{}> skipped: some occupancies could not be converted to floats'.format(source_id))
+                click.echo('{} | Cif<{}> skipped: some occupancies could not be converted to floats'.format(
+                    datetime.utcnow().isoformat(), source_id))
 
         if max_entries is not None and counter >= max_entries:
-            click.echo('-' * 80)
-            click.echo('Maximum number of entries {} stored'.format(max_entries))
             break
 
+    if count_entries:
+        click.echo('{}'.format(counter))
+        return
+
+    click.echo('-' * 80)
+    click.echo('Stored {} new entries'.format(counter))
     click.echo('Stopping cif import on {}'.format(datetime.utcnow().isoformat()))
     click.echo('=' * 80)
