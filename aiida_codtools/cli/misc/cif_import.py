@@ -51,11 +51,16 @@ from aiida.utils.cli import options
     help='Return the number of entries the query yields and exit'
 )
 @click.option(
+    '-b', '--batch-count', type=click.INT, default=1000, show_default=True,
+    help='Store imported cif nodes in batches of this size. This reduces the number of database operations \
+but if the script dies before a checkpoint the imported cif nodes of the current batch are lost'
+)
+@click.option(
     '-n', '--dry-run', is_flag=True, default=False,
     help='Perform a dry-run'
 )
 def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server, importer_db_host,
-    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, dry_run):
+    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, batch_count, dry_run):
     """
     Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -147,6 +152,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
     existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
 
     counter = 0
+    batch = []
 
     for entry in query_results:
 
@@ -174,17 +180,23 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
                         datetime.utcnow().isoformat(), source_id))
                 else:
                     if not dry_run:
-                        cif.store()
-                        group.add_nodes([cif])
-                        click.echo('{} | Cif<{}> added: new CifData<{}> to group {}'.format(
-                            datetime.utcnow().isoformat(), source_id, cif.pk, group.name))
+                        batch.append(cif)
+                        template = '{} | Cif<{}> adding: new CifData<{}> to group {}'
                     else:
-                        click.echo('{} | Cif<{}> would have added: CifData<{}> to group {}'.format(
-                            datetime.utcnow().isoformat(), source_id, cif.uuid, group.name))
+                        template = '{} | Cif<{}> would have added: CifData<{}> to group {}'
+
+                    click.echo(template.format(datetime.utcnow().isoformat(), source_id, cif.uuid, group.name))
                     counter += 1
+
             except ValueError:
                 click.echo('{} | Cif<{}> skipped: some occupancies could not be converted to floats'.format(
                     datetime.utcnow().isoformat(), source_id))
+
+        if not dry_run and counter % batch_count == 0:
+            click.echo('{} | Storing batch of {} CifData nodes'.format(datetime.utcnow().isoformat(), len(batch)))
+            nodes = [cif.store() for cif in batch]
+            group.add_nodes(nodes)
+            batch = []
 
         if max_entries is not None and counter >= max_entries:
             break
@@ -192,6 +204,11 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
     if count_entries:
         click.echo('{}'.format(counter))
         return
+
+    if not dry_run and len(batch) > 0:
+        click.echo('{} | Storing batch of {} CifData nodes'.format(datetime.utcnow().isoformat(), len(batch)))
+        nodes = [cif.store() for cif in batch]
+        group.add_nodes(nodes)
 
     click.echo('-' * 80)
     click.echo('Stored {} new entries'.format(counter))
