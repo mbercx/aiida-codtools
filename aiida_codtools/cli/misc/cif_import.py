@@ -5,7 +5,7 @@ from aiida.utils.cli import options
 
 
 @command()
-@options.group(help='Group in which to store the raw imported CifData nodes')
+@options.group(help='Group in which to store the raw imported CifData nodes', required=False)
 @click.option(
     '-d', '--database', type=click.Choice(['cod', 'icsd', 'mpds']), default='cod', show_default=True,
     help='Select the database to import from'
@@ -73,6 +73,9 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
     from datetime import datetime
     from urllib2 import HTTPError
     from aiida.tools.dbimporters import DbImporterFactory
+
+    if not count_entries and group is None:
+        raise click.BadParameter('you have to specify a group unless the option --count-entries is specified')
 
     importer_parameters = {}
     launch_paramaters = {}
@@ -149,7 +152,8 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         click.echo('database query failed: {}'.format(exception))
         return
 
-    existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
+    if not count_entries:
+        existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
 
     counter = 0
     batch = []
@@ -164,19 +168,19 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         source_id = entry.source['id']
 
         if source_id in existing_cif_nodes:
-            click.echo('{} | Cif<{}> skipped: already present in group {}'.format(
+            click.echo('{} | Cif<{}> skipping: already present in group {}'.format(
                 datetime.utcnow().isoformat(), source_id, group.name))
             continue
 
         try:
             cif = entry.get_cif_node()
-        except (StarError, HTTPError, UnicodeDecodeError) as exception:
-            click.echo('{} | Cif<{}> skipped: encountered an error retrieving cif data: {}'.format(
-                datetime.utcnow().isoformat(), source_id, exception))
+        except (AttributeError, UnicodeDecodeError, StarError, HTTPError) as exception:
+            click.echo('{} | Cif<{}> skipping: encountered an error retrieving cif data: {}'.format(
+                datetime.utcnow().isoformat(), source_id, exception.__class__.__name__))
         else:
             try:
                 if skip_partial_occupancies and cif.has_partial_occupancies():
-                    click.echo('{} | Cif<{}> skipped: contains partial occupancies'.format(
+                    click.echo('{} | Cif<{}> skipping: contains partial occupancies'.format(
                         datetime.utcnow().isoformat(), source_id))
                 else:
                     if not dry_run:
@@ -189,7 +193,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
                     counter += 1
 
             except ValueError:
-                click.echo('{} | Cif<{}> skipped: some occupancies could not be converted to floats'.format(
+                click.echo('{} | Cif<{}> skipping: some occupancies could not be converted to floats'.format(
                     datetime.utcnow().isoformat(), source_id))
 
         if not dry_run and counter % batch_count == 0:
