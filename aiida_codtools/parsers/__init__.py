@@ -17,8 +17,8 @@ class BaseCodtoolsParser(Parser):
         from aiida.common.exceptions import ParsingError
 
         if not isinstance(calc, self._supported_calculation_class):
-            raise ParsingError("Input calc must be a {}".format(
-                self._supported_calculation_class.__name__))
+            raise ParsingError("Input calc must be a {} but {} is a {}".format(
+                self._supported_calculation_class, calc.__class__, calc))
 
     def parse_with_retrieved(self, retrieved):
         """

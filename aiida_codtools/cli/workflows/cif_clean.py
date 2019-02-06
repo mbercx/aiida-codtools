@@ -58,10 +58,11 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     from aiida.orm import load_node
     from aiida.orm.data.str import Str
     from aiida.orm.data.parameter import ParameterData
-    from aiida.orm.group import Group
+    from aiida.orm.groups import Group
+    from aiida.orm.node.process import WorkChainNode
     from aiida.orm.querybuilder import QueryBuilder
     from aiida.orm.utils import CalculationFactory, DataFactory, WorkflowFactory
-    from aiida.work import runners
+    from aiida.work.launch import run_get_node, submit
     from aiida_codtools.common.resources import get_default_options
 
     CifData = DataFactory('cif')
@@ -91,41 +92,42 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
             raise click.BadParameter('node<{}> is not a CifData node'.format(node))
 
         nodes = [cif_data]
-        completed_cif_nodes = []
 
     elif group_cif_raw is not None:
 
-        nodes = sorted(group_cif_raw.nodes, key=lambda x: x.pk)
+        # Get CifData nodes that should actually be submitted according to the input filters
+        builder = QueryBuilder()
+        builder.append(Group, filters={'id': {'==': group_cif_raw.pk}}, tag='group')
 
-        qb = QueryBuilder()
-        qb.append(CifFilterCalculation, tag='calculation')
-        qb.append(CifData, input_of='calculation', tag='data', project=['id'])
-        qb.append(Group, filters={'id': {'==': group_cif_raw.pk}}, group_of='data')
-        completed_cif_nodes = set(pk for entry in qb.all() for pk in entry)
+        if skip_check:
+            builder.append(CifData, with_group='group', project=['*'])
+        else:
+            # Get CifData nodes that already have an associated workchain node in the `group_workchain` group.
+            submitted = QueryBuilder()
+            submitted.append(WorkChainNode, tag='workchain')
+            submitted.append(Group, filters={'id': {'==': group_workchain.pk}}, with_node='workchain')
+            submitted.append(CifData, with_outgoing='workchain', tag='data', project=['id'])
+            submitted_nodes = set(pk for entry in submitted.all() for pk in entry)
+
+            if submitted_nodes:
+                filters = {'id': {'!in': submitted_nodes}}
+            else:
+                filters = {}
+
+            # Get all CifData nodes that are not included in the submitted node list
+            builder.append(CifData, with_group='group', filters=filters, project=['*'])
+
+        if max_entries is not None:
+            builder.limit(int(max_entries))
+
+        nodes = [entry[0] for entry in builder.all()]
 
     else:
         raise click.BadParameter('you have to specify either --group-cif-raw or --node')
 
-    # Collect the dictionary of not None parameters passed to the launch script and print to screen
-    local_vars = locals()
-    launch_paramaters = {}
-    for arg in inspect.getargspec(launch.callback).args:
-        if arg in local_vars and local_vars[arg]:
-            launch_paramaters[arg] = local_vars[arg]
-
-    click.echo('=' * 80)
-    click.echo('Starting cif clean on {}'.format(datetime.utcnow().isoformat()))
-    click.echo('Launch parameters: {}'.format(launch_paramaters))
-    click.echo('-' * 80)
-
     counter = 0
-    runner = runners.new_runner(rmq_submit=True)
 
     for cif in nodes:
-
-        if not skip_check and cif.pk in completed_cif_nodes:
-            click.echo('{} | CifData<{}> skipped: already submitted'.format(datetime.utcnow().isoformat(), cif.pk))
-            continue
 
         if starting_node is not None and cif.pk < starting_node:
             continue
@@ -145,13 +147,13 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
             inputs['group_structure'] = group_structure
 
         if daemon:
-            workchain = runner.submit(CifCleanWorkChain, **inputs)
+            workchain = submit(CifCleanWorkChain, **inputs)
             click.echo('{} | CifData<{}> submitting: {}<{}>'.format(
                 datetime.utcnow().isoformat(), cif.pk, CifCleanWorkChain.__name__, workchain.pk))
         else:
             click.echo('{} | CifData<{}> running: {}'.format(
                 datetime.utcnow().isoformat(), cif.pk, CifCleanWorkChain.__name__))
-            result, workchain = runner.run_get_node(CifCleanWorkChain, **inputs)
+            result, workchain = run_get_node(CifCleanWorkChain, **inputs)
 
         if group_workchain is not None:
             group_workchain.add_nodes([workchain])
