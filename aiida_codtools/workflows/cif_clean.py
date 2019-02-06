@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-from aiida.common.exceptions import UnsupportedSpeciesError
+from aiida.common import exceptions
 from aiida.common.extendeddicts import AttributeDict
 from aiida.orm import Code, Group
-from aiida.orm.data.cif import CifData, InvalidOccupationsError
+from aiida.orm.data.cif import CifData
 from aiida.orm.data.base import Float, Str
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.utils import CalculationFactory
-from aiida.tools import get_kpoints_path
 from aiida.work.workchain import WorkChain, ToContext, if_
-from aiida.work.workfunctions import workfunction
 from aiida_codtools.common.exceptions import CifParseError
-from seekpath.hpkot import SymmetryDetectionError
 
 
 CifFilterCalculation = CalculationFactory('codtools.cif_filter')
@@ -113,7 +110,7 @@ class CifCleanWorkChain(WorkChain):
         """
         try:
             self.ctx.cif = self.ctx.cif_filter.out.cif
-        except AttributeError:
+        except exceptions.NotExistent:
             self.report('aborting: the CifFilterCalculation did not return the required cif output')
             return self.exit_codes.ERROR_CIF_FILTER_FAILED
 
@@ -148,7 +145,7 @@ class CifCleanWorkChain(WorkChain):
         """
         try:
             self.ctx.cif = self.ctx.cif_select.out.cif
-        except AttributeError:
+        except exceptions.NotExistent:
             self.report('aborting: the CifSelectCalculation did not return the required cif output')
             return self.exit_codes.ERROR_CIF_SELECT_FAILED
 
@@ -165,6 +162,8 @@ class CifCleanWorkChain(WorkChain):
         the parsing engine specified in the inputs and if successful attempt to find the primitive cell
         structure using the SeeKpath library
         """
+        from aiida_codtools.workflows.functions.primitive_structure_from_cif import primitive_structure_from_cif
+
         cif = self.ctx.cif
         parse_engine = self.inputs.parse_engine
 
@@ -221,55 +220,3 @@ class CifCleanWorkChain(WorkChain):
                 self.out('structure', structure)
 
         self.report('workchain finished successfully')
-
-
-@workfunction
-def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
-    """
-    This workfunction will take a CifData node, attempt to create a StructureData object from it
-    using the 'parse_engine' and pass it through SeeKpath to try and get the primitive cell. Finally, it will
-    store several keys from the SeeKpath output parameters dictionary directly on the structure data as attributes,
-    which are otherwise difficult if not impossible to query for.
-
-    :param cif: the CifData node
-    :param parse_engine: the parsing engine, supported libraries 'ase' and 'pymatgen'
-    :param symprec: a Float node with symmetry precision for determining primitive cell in SeeKpath
-    :param site_tolerance: a Float node with the fractional coordinate distance tolerance for finding overlapping sites
-        This will only be used if the parse_engine is pymatgen
-    :returns: the primitive StructureData as determined by SeeKpath
-    """
-    import traceback
-
-    try:
-        structure = cif._get_aiida_structure(converter=parse_engine.value, site_tolerance=site_tolerance, store=False)
-    except UnsupportedSpeciesError:
-        return CifCleanWorkChain.exit_codes.ERROR_CIF_HAS_UNKNOWN_SPECIES
-    except InvalidOccupationsError:
-        return CifCleanWorkChain.exit_codes.ERROR_CIF_HAS_INVALID_OCCUPANCIES
-    except BaseException:
-        raise CifParseError(traceback.format_exc())
-
-    try:
-        seekpath_results = get_kpoints_path(structure, symprec=symprec)
-    except ValueError:
-        return CifCleanWorkChain.exit_codes.ERROR_SEEKPATH_INCONSISTENT_SYMMETRY
-    except SymmetryDetectionError:
-        return CifCleanWorkChain.exit_codes.ERROR_SEEKPATH_SYMMETRY_DETECTION_FAILED
-
-    # Store important information that should be easily queryable as attributes in the StructureData
-    parameters = seekpath_results['parameters'].get_dict()
-    structure = seekpath_results['primitive_structure'].store()
-
-    for key in ['spacegroup_international', 'spacegroup_number', 'bravais_lattice', 'bravais_lattice_extended']:
-        try:
-            value = parameters[key]
-            structure.set_extra(key, value)
-        except KeyError:
-            pass
-
-    # Store the formula as a string, in both hill as well as hill-compact notation, so it can be easily queried for
-    structure.set_extra('formula_hill', structure.get_formula(mode='hill'))
-    structure.set_extra('formula_hill_compact', structure.get_formula(mode='hill_compact'))
-    structure.set_extra('chemical_system', '-{}-'.format('-'.join(sorted(structure.get_symbols_set()))))
-
-    return structure
