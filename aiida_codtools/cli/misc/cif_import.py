@@ -2,7 +2,7 @@
 import click
 
 from aiida.cmdline.params import options
-from aiida.cmdline.utils import decorators
+from aiida.cmdline.utils import decorators, echo
 
 
 @click.command()
@@ -47,11 +47,13 @@ from aiida.cmdline.utils import decorators
 @click.option(
     '-n', '--dry-run', is_flag=True, default=False,
     help='Perform a dry-run.')
+@options.VERBOSE(help='Print entries that are skipped.')
 @decorators.with_dbenv()
 def launch(group, database, max_entries, number_species, skip_partial_occupancies, importer_server, importer_db_host,
-    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, batch_count, dry_run):
-    """
-    Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
+    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, batch_count, dry_run,
+    verbose):
+    """Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
+
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
     the attribute 'source.id' of the CifData is compared to the source id of the imported cif entry. Since there
     is no guarantee that these id's do not overlap between different structural databases and we do not check
@@ -137,8 +139,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
     try:
         query_results = importer.query(**query_parameters)
     except BaseException as exception:
-        click.echo('database query failed: {}'.format(exception))
-        return
+        echo.echo_critical('database query failed: {}'.format(exception))
 
     if not count_entries:
         existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
@@ -156,33 +157,31 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         source_id = entry.source['id']
 
         if source_id in existing_cif_nodes:
-            click.echo('{} | Cif<{}> skipping: already present in group {}'.format(
-                datetime.utcnow().isoformat(), source_id, group.name))
+            if verbose:
+                click.echo('{} | Cif<{}> skipping: already present in group {}'.format(
+                    datetime.utcnow().isoformat(), source_id, group.name))
             continue
 
         try:
             cif = entry.get_cif_node()
         except (AttributeError, UnicodeDecodeError, StarError, HTTPError) as exception:
-            click.echo('{} | Cif<{}> skipping: encountered an error retrieving cif data: {}'.format(
-                datetime.utcnow().isoformat(), source_id, exception.__class__.__name__))
+            if verbose:
+                click.echo('{} | Cif<{}> skipping: encountered an error retrieving cif data: {}'.format(
+                    datetime.utcnow().isoformat(), source_id, exception.__class__.__name__))
         else:
-            try:
-                if skip_partial_occupancies and cif.has_partial_occupancies():
+            if skip_partial_occupancies and cif.has_partial_occupancies():
+                if verbose:
                     click.echo('{} | Cif<{}> skipping: contains partial occupancies'.format(
                         datetime.utcnow().isoformat(), source_id))
+            else:
+                if not dry_run:
+                    batch.append(cif)
+                    template = '{} | Cif<{}> adding: new CifData<{}> to group {}'
                 else:
-                    if not dry_run:
-                        batch.append(cif)
-                        template = '{} | Cif<{}> adding: new CifData<{}> to group {}'
-                    else:
-                        template = '{} | Cif<{}> would have added: CifData<{}> to group {}'
+                    template = '{} | Cif<{}> would have added: CifData<{}> to group {}'
 
-                    click.echo(template.format(datetime.utcnow().isoformat(), source_id, cif.uuid, group.name))
-                    counter += 1
-
-            except ValueError:
-                click.echo('{} | Cif<{}> skipping: some occupancies could not be converted to floats'.format(
-                    datetime.utcnow().isoformat(), source_id))
+                click.echo(template.format(datetime.utcnow().isoformat(), source_id, cif.uuid, group.name))
+                counter += 1
 
         if not dry_run and counter % batch_count == 0:
             click.echo('{} | Storing batch of {} CifData nodes'.format(datetime.utcnow().isoformat(), len(batch)))
