@@ -25,11 +25,8 @@ from aiida.cmdline.utils import decorators
     '-w', '--group-workchain', required=False, type=types.GroupParamType(),
     help='Group to which to add the WorkChain nodes.')
 @click.option(
-    '-n', '--node', type=click.INT, default=None, required=False,
-    help='Specify the explicit pk of a CifData node for which to run the clean workchain.')
-@click.option(
-    '-N', '--starting-node', type=click.INT, default=None, required=False,
-    help='Specify the starting pk of the CifData from which to start cleaning consecutively.')
+    '-N', '--node', type=types.DataParamType(sub_classes=('aiida.data:cif',)), default=None, required=False,
+    help='Specify the explicit CifData node for which to run the clean workchain.')
 @click.option(
     '-M', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
     help='Maximum number of CifData entries to clean.')
@@ -43,8 +40,8 @@ from aiida.cmdline.utils import decorators
     '-d', '--daemon', is_flag=True, default=False, show_default=True,
     help='Submit the process to the daemon instead of running it locally.')
 @decorators.with_dbenv()
-def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, group_workchain, node,
-    starting_node, max_entries, skip_check, parse_engine, daemon):
+def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, group_workchain, node, max_entries,
+    skip_check, parse_engine, daemon):
     """
     Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes. It will use
     the cif_filter and cif_select scripts of cod-tools to clean the input cif file. Additionally, if the
@@ -61,12 +58,11 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     from aiida.orm.groups import Group
     from aiida.orm.node.process import WorkChainNode
     from aiida.orm.querybuilder import QueryBuilder
-    from aiida.orm.utils import CalculationFactory, DataFactory, WorkflowFactory
+    from aiida.orm.utils import DataFactory, WorkflowFactory
     from aiida.work.launch import run_get_node, submit
     from aiida_codtools.common.resources import get_default_options
 
     CifData = DataFactory('cif')
-    CifFilterCalculation = CalculationFactory('codtools.cif_filter')
     CifCleanWorkChain = WorkflowFactory('codtools.cif_clean')
 
     # Collect the dictionary of not None parameters passed to the launch script and print to screen
@@ -128,9 +124,6 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     counter = 0
 
     for cif in nodes:
-
-        if starting_node is not None and cif.pk < starting_node:
-            continue
 
         inputs = {
             'cif': cif,
