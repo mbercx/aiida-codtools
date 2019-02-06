@@ -63,7 +63,11 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
     from CifFile.StarFile import StarError
     from datetime import datetime
     from urllib2 import HTTPError
+    from aiida.orm import Group, QueryBuilder
+    from aiida.orm.utils import DataFactory
     from aiida.tools.dbimporters import DbImporterFactory
+
+    CifData = DataFactory('cif')
 
     if not count_entries and group is None:
         raise click.BadParameter('you have to specify a group unless the option --count-entries is specified')
@@ -142,7 +146,10 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
         echo.echo_critical('database query failed: {}'.format(exception))
 
     if not count_entries:
-        existing_cif_nodes = [cif.get_attr('source')['id'] for cif in group.nodes]
+        builder = QueryBuilder()
+        builder.append(Group, filters={'label': group.label}, tag='group')
+        builder.append(CifData, with_group='group', project='attributes.source.id')
+        existing_source_ids = [entry[0] for entry in builder.all()]
 
     counter = 0
     batch = []
@@ -156,7 +163,7 @@ def launch(group, database, max_entries, number_species, skip_partial_occupancie
 
         source_id = entry.source['id']
 
-        if source_id in existing_cif_nodes:
+        if source_id in existing_source_ids:
             if verbose:
                 click.echo('{} | Cif<{}> skipping: already present in group {}'.format(
                     datetime.utcnow().isoformat(), source_id, group.name))
