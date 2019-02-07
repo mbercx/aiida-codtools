@@ -42,17 +42,15 @@ from aiida.cmdline.utils import decorators
 @decorators.with_dbenv()
 def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structure, group_workchain, node, max_entries,
     skip_check, parse_engine, daemon):
-    """
-    Run the CifCleanWorkChain on the entries in a group with raw imported CifData nodes. It will use
-    the cif_filter and cif_select scripts of cod-tools to clean the input cif file. Additionally, if the
-    'group-structure' option is passed, the workchain will also attempt to use the given parse engine
-    to parse the cleaned CifData to obtain the structure and then use SeeKpath to find the
-    primitive structure, which, if successful, will be added to the group-structure group
+    """Run the `CifCleanWorkChain` on the entries in a group with raw imported CifData nodes.
+
+    It will use the `cif_filter` and `cif_select` scripts of `cod-tools` to clean the input cif file. Additionally, if
+    the `group-structure` option is passed, the workchain will also attempt to use the given parse engine to parse the
+    cleaned `CifData` to obtain the structure and then use SeeKpath to find the primitive structure, which, if
+    successful, will be added to the `group-structure` group.
     """
     import inspect
     from datetime import datetime
-    from aiida.common.exceptions import NotExistent
-    from aiida.orm import load_node
     from aiida.orm.data.str import Str
     from aiida.orm.data.parameter import ParameterData
     from aiida.orm.groups import Group
@@ -77,19 +75,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     click.echo('Launch parameters: {}'.format(launch_paramaters))
     click.echo('-' * 80)
 
-    if node is not None:
-
-        try:
-            cif_data = load_node(node)
-        except NotExistent:
-            raise click.BadParameter('node<{}> could not be loaded'.format(node))
-
-        if not isinstance(cif_data, CifData):
-            raise click.BadParameter('node<{}> is not a CifData node'.format(node))
-
-        nodes = [cif_data]
-
-    elif group_cif_raw is not None:
+    if group_cif_raw is not None:
 
         # Get CifData nodes that should actually be submitted according to the input filters
         builder = QueryBuilder()
@@ -117,6 +103,10 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
             builder.limit(int(max_entries))
 
         nodes = [entry[0] for entry in builder.all()]
+
+    elif node is not None:
+
+        nodes = [node]
 
     else:
         raise click.BadParameter('you have to specify either --group-cif-raw or --node')
