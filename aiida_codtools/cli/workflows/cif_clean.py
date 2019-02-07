@@ -115,12 +115,28 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
 
     for cif in nodes:
 
+        cif_filter_parameters = {
+            'fix-syntax-errors': True,
+            'use-c-parser': True,
+            'use-datablocks-without-coordinates': True,
+        }
+
+        cif_select_parameters = {
+            'canonicalize-tag-names': True,
+            'dont-treat-dots-as-underscores': True,
+            'invert': True,
+            'tags': '_publ_author_name,_citation_journal_abbrev',
+            'use-c-parser': True,
+        }
+
         inputs = {
             'cif': cif,
             'cif_filter': cif_filter,
             'cif_select': cif_select,
+            'cif_filter_parameters': ParameterData(dict=cif_filter_parameters),
+            'cif_select_parameters': ParameterData(dict=cif_select_parameters),
+            'options': ParameterData(dict=get_default_options()),
             'parse_engine': Str(parse_engine),
-            'options': ParameterData(dict=get_default_options())
         }
 
         if group_cif_clean is not None:
