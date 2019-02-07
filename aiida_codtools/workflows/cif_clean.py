@@ -7,7 +7,9 @@ from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.utils import CalculationFactory
 from aiida.work.workchain import WorkChain, ToContext, if_
+
 from aiida_codtools.common.exceptions import CifParseError
+from aiida_codtools.common.resources import get_default_options
 
 
 CifFilterCalculation = CalculationFactory('codtools.cif_filter')
@@ -36,7 +38,7 @@ class CifCleanWorkChain(WorkChain):
             help='Parameters to be passed to the `CifFilterCalculation`.')
         spec.input('cif_select_parameters', valid_type=ParameterData, required=True,
             help='Parameters to be passed to the `CifSelectCalculation`.')
-        spec.input('options', valid_type=ParameterData,
+        spec.input('options', valid_type=ParameterData, default=ParameterData(dict=get_default_options()),
             help='Options for the calculations.')
         spec.input('parse_engine', valid_type=Str, default=Str('pymatgen'),
             help='The atomic structure engine to parse the cif and create the structure.')

@@ -51,7 +51,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     """
     import inspect
     from datetime import datetime
-    from aiida.orm.data.str import Str
+    from aiida.orm.data.base import Float, Str
     from aiida.orm.data.parameter import ParameterData
     from aiida.orm.groups import Group
     from aiida.orm.node.process import WorkChainNode
@@ -59,6 +59,7 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
     from aiida.orm.utils import DataFactory, WorkflowFactory
     from aiida.work.launch import run_get_node, submit
     from aiida_codtools.common.resources import get_default_options
+    from aiida_codtools.common.utils import get_input_node
 
     CifData = DataFactory('cif')
     CifCleanWorkChain = WorkflowFactory('codtools.cif_clean')
@@ -113,30 +114,37 @@ def launch(cif_filter, cif_select, group_cif_raw, group_cif_clean, group_structu
 
     counter = 0
 
+    node_cif_filter_parameters = get_input_node(ParameterData, {
+        'fix-syntax-errors': True,
+        'use-c-parser': True,
+        'use-datablocks-without-coordinates': True,
+    })
+
+    node_cif_select_parameters = get_input_node(ParameterData, {
+        'canonicalize-tag-names': True,
+        'dont-treat-dots-as-underscores': True,
+        'invert': True,
+        'tags': '_publ_author_name,_citation_journal_abbrev',
+        'use-c-parser': True,
+    })
+
+    node_options = get_input_node(ParameterData, get_default_options())
+    node_parse_engine = get_input_node(Str, parse_engine)
+    node_site_tolerance = get_input_node(Float, 5E-4)
+    node_symprec = get_input_node(Float, 5E-3)
+
     for cif in nodes:
-
-        cif_filter_parameters = {
-            'fix-syntax-errors': True,
-            'use-c-parser': True,
-            'use-datablocks-without-coordinates': True,
-        }
-
-        cif_select_parameters = {
-            'canonicalize-tag-names': True,
-            'dont-treat-dots-as-underscores': True,
-            'invert': True,
-            'tags': '_publ_author_name,_citation_journal_abbrev',
-            'use-c-parser': True,
-        }
 
         inputs = {
             'cif': cif,
             'cif_filter': cif_filter,
             'cif_select': cif_select,
-            'cif_filter_parameters': ParameterData(dict=cif_filter_parameters),
-            'cif_select_parameters': ParameterData(dict=cif_select_parameters),
-            'options': ParameterData(dict=get_default_options()),
-            'parse_engine': Str(parse_engine),
+            'cif_filter_parameters': node_cif_filter_parameters,
+            'cif_select_parameters': node_cif_select_parameters,
+            'options': node_options,
+            'parse_engine': node_parse_engine,
+            'site_tolerance': node_site_tolerance,
+            'symprec': node_symprec,
         }
 
         if group_cif_clean is not None:
