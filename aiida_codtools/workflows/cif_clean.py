@@ -61,26 +61,28 @@ class CifCleanWorkChain(WorkChain):
         )
 
         spec.output('cif', valid_type=CifData,
-            help='the cleaned CifData node')
+            help='The cleaned CifData node.')
         spec.output('structure', valid_type=StructureData, required=False,
-            help='the primitive cell structure created with SeeKpath from the cleaned CifData')
+            help='The primitive cell structure created with SeeKpath from the cleaned CifData.')
 
         spec.exit_code(401, 'ERROR_CIF_FILTER_FAILED',
-            message='the CifFilterCalculation step failed')
+            message='The CifFilterCalculation step failed.')
         spec.exit_code(402, 'ERROR_CIF_SELECT_FAILED',
-            message='the CifSelectCalculation step failed')
-        spec.exit_code(403, 'ERROR_CIF_HAS_NO_ATOMIC_SITES',
-            message='the cleaned CifData defines no atomic sites')
-        spec.exit_code(404, 'ERROR_CIF_HAS_UNKNOWN_SPECIES',
-            message='the cleaned CifData contains sites with unknown species')
-        spec.exit_code(405, 'ERROR_CIF_HAS_INVALID_OCCUPANCIES',
-            message='the cleaned CifData defines sites with invalid atomic occupancies')
-        spec.exit_code(406, 'ERROR_CIF_STRUCTURE_PARSING_FAILED',
-            message='failed to parse a StructureData from the cleaned CifData')
-        spec.exit_code(407, 'ERROR_SEEKPATH_SYMMETRY_DETECTION_FAILED',
-            message='SeeKpath failed to determine the primitive structure')
-        spec.exit_code(408, 'ERROR_SEEKPATH_INCONSISTENT_SYMMETRY',
-            message='SeeKpath detected inconsistent symmetry operations')
+            message='The CifSelectCalculation step failed.')
+        spec.exit_code(410, 'ERROR_CIF_HAS_UNKNOWN_SPECIES',
+            message='The10leaned CifData contains sites with unknown species.')
+        spec.exit_code(411, 'ERROR_CIF_HAS_UNDEFINED_ATOMIC_SITES',
+            message='The10leaned CifData defines no atomic sites.')
+        spec.exit_code(412, 'ERROR_CIF_HAS_ATTACHED_HYDROGENS',
+            message='The10leaned CifData defines sites with attached hydrogens with incomplete positional data.')
+        spec.exit_code(413, 'ERROR_CIF_HAS_INVALID_OCCUPANCIES',
+            message='The10leaned CifData defines sites with invalid atomic occupancies.')
+        spec.exit_code(414, 'ERROR_CIF_STRUCTURE_PARSING_FAILED',
+            message='Failed to parse a StructureData from the cleaned CifData.')
+        spec.exit_code(420, 'ERROR_SEEKPATH_SYMMETRY_DETECTION_FAILED',
+            message='SeeKpath failed to determine the primitive structure.')
+        spec.exit_code(421, 'ERROR_SEEKPATH_INCONSISTENT_SYMMETRY',
+            message='SeeKpath detected inconsistent symmetry operations.')
 
     def run_filter_calculation(self):
         """
@@ -150,39 +152,34 @@ class CifCleanWorkChain(WorkChain):
             return self.exit_codes.ERROR_CIF_SELECT_FAILED
 
     def should_parse_cif_structure(self):
-        """
-        Return whether the primitive structure should be created from the final cleaned CifData
-        Will be true if the 'group_structure' input is specified
-        """
+        """Return whether the primitive structure should be created from the final cleaned CifData."""
         return 'group_structure' in self.inputs
 
     def parse_cif_structure(self):
-        """
-        Create a StructureData from the CifData output node returned by the CifSelectCalculation, using
-        the parsing engine specified in the inputs and if successful attempt to find the primitive cell
-        structure using the SeeKpath library
-        """
+        """Parse a `StructureData` from the cleaned `CifData` returned by the `CifSelectCalculation`."""
         from aiida_codtools.workflows.functions.primitive_structure_from_cif import primitive_structure_from_cif
 
-        cif = self.ctx.cif
-        parse_engine = self.inputs.parse_engine
-
-        parse_inputs = {
-            'cif': cif,
-            'parse_engine': parse_engine,
-            'symprec': self.inputs.symprec,
-            'site_tolerance': self.inputs.site_tolerance,
-        }
-
-        if not cif.has_atomic_sites:
-            self.ctx.exit_code = self.exit_codes.ERROR_CIF_HAS_NO_ATOMIC_SITES
-            self.report(self.ctx.exit_code.message)
-            return
-
-        if cif.has_unknown_species:
+        if self.ctx.cif.has_unknown_species:
             self.ctx.exit_code = self.exit_codes.ERROR_CIF_HAS_UNKNOWN_SPECIES
             self.report(self.ctx.exit_code.message)
             return
+
+        if self.ctx.cif.has_undefined_atomic_sites:
+            self.ctx.exit_code = self.exit_codes.ERROR_CIF_HAS_UNDEFINED_ATOMIC_SITES
+            self.report(self.ctx.exit_code.message)
+            return
+
+        if self.ctx.cif.has_attached_hydrogens:
+            self.ctx.exit_code = self.exit_codes.ERROR_CIF_HAS_ATTACHED_HYDROGENS
+            self.report(self.ctx.exit_code.message)
+            return
+
+        parse_inputs = {
+            'cif': self.ctx.cif,
+            'parse_engine': self.inputs.parse_engine,
+            'site_tolerance': self.inputs.site_tolerance,
+            'symprec': self.inputs.symprec,
+        }
 
         try:
             structure, node = primitive_structure_from_cif.run_get_node(**parse_inputs)
