@@ -121,8 +121,10 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
         elif number_species == 5:
             query_parameters['query']['classes'] = 'quinary'
         else:
-            raise click.BadParameter('only unaries through quinaries are supported by the {} database'
-                .format(database), param_hint='number_species')
+            # Limitation of MPDS: retrieve everything with more than 5 elements and filter on retrieved cifs. Since it
+            # is impossible to quickly determine the number of elements in a raw CIF file without parsing it, we cannot
+            # actually apply the filtering in the import here.
+            query_parameters['query']['classes'] = 'multinary'
 
     else:
 
