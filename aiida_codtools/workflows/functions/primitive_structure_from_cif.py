@@ -12,23 +12,23 @@ from aiida.tools.data.cif import InvalidOccupationsError
 
 @calcfunction
 def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
-    """
-    This calcfunction will take a CifData node, attempt to create a StructureData object from it
-    using the 'parse_engine' and pass it through SeeKpath to try and get the primitive cell. Finally, it will
-    store several keys from the SeeKpath output parameters dictionary directly on the structure data as attributes,
-    which are otherwise difficult if not impossible to query for.
+    """Attempt to parse the given `CifData` and create a `StructureData` from it.
 
-    :param cif: the CifData node
+    First the raw CIF file is parsed with the given `parse_engine`. The resulting `StructureData` is then passed through
+    SeeKpath to try and get the primitive cell. If that is successful, important structural parameters as determined by
+    SeeKpath will be set as extras on the structure node which is then returned as output.
+
+    :param cif: the `CifData` node
     :param parse_engine: the parsing engine, supported libraries 'ase' and 'pymatgen'
-    :param symprec: a Float node with symmetry precision for determining primitive cell in SeeKpath
-    :param site_tolerance: a Float node with the fractional coordinate distance tolerance for finding overlapping sites
-        This will only be used if the parse_engine is pymatgen
-    :returns: the primitive StructureData as determined by SeeKpath
+    :param symprec: a `Float` node with symmetry precision for determining primitive cell in SeeKpath
+    :param site_tolerance: a `Float` node with the fractional coordinate distance tolerance for finding overlapping
+        sites. This will only be used if the parse_engine is pymatgen
+    :return: the primitive `StructureData` as determined by SeeKpath
     """
     CifCleanWorkChain = WorkflowFactory('codtools.cif_clean')  # pylint: disable=invalid-name
 
     try:
-        structure = cif.get_structure(converter=parse_engine.value, site_tolerance=site_tolerance, store=False)
+        structure = cif.get_structure(converter=parse_engine.value, site_tolerance=site_tolerance.value, store=False)
     except exceptions.UnsupportedSpeciesError:
         return CifCleanWorkChain.exit_codes.ERROR_CIF_HAS_UNKNOWN_SPECIES
     except InvalidOccupationsError:
@@ -47,16 +47,19 @@ def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
     parameters = seekpath_results['parameters'].get_dict()
     structure = seekpath_results['primitive_structure']
 
+    # Store the formula as a string, in both hill as well as hill-compact notation, so it can be easily queried for
+    extras = {
+        'formula_hill': structure.get_formula(mode='hill'),
+        'formula_hill_compact': structure.get_formula(mode='hill_compact'),
+        'chemical_system': '-{}-'.format('-'.join(sorted(structure.get_symbols_set()))),
+    }
+
     for key in ['spacegroup_international', 'spacegroup_number', 'bravais_lattice', 'bravais_lattice_extended']:
         try:
-            value = parameters[key]
-            structure.set_extra(key, value)
+            extras[key] = parameters[key]
         except KeyError:
             pass
 
-    # Store the formula as a string, in both hill as well as hill-compact notation, so it can be easily queried for
-    structure.set_extra('formula_hill', structure.get_formula(mode='hill'))
-    structure.set_extra('formula_hill_compact', structure.get_formula(mode='hill_compact'))
-    structure.set_extra('chemical_system', '-{}-'.format('-'.join(sorted(structure.get_symbols_set()))))
+    structure.set_extras(extras)
 
     return structure
