@@ -11,3 +11,4 @@ def cmd_data():
 
 # Import the sub commands to register them with the CLI
 from .cif import cmd_cif
+from .structure import cmd_structure
