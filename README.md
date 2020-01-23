@@ -64,3 +64,9 @@ These will most likely be different for your database, so change them accordingl
 
 ## Documentation
 The documentation for this package can be found on [readthedocs](http://aiida-codtools.readthedocs.io/en/latest/).
+
+
+## Acknowledgements
+This work is supported in part by the [swissuniversities P-5 project "Materials Cloud"](https://www.materialscloud.org/swissuniversities).
+
+![swissuniversities](docs/source/images/swissuniversities.png)
