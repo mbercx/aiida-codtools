@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """WorkChain to clean a `CifData` using `cif_filter` and `cif_select` from cod-tools and parse a `StructureData`."""
 # pylint: disable=inconsistent-return-statements,no-member
-from __future__ import absolute_import
 
 from aiida import orm
 from aiida.common import exceptions
@@ -24,16 +23,16 @@ class CifCleanWorkChain(WorkChain):
     @classmethod
     def define(cls, spec):
         # yapf: disable
-        super(CifCleanWorkChain, cls).define(spec)
+        super().define(spec)
         spec.expose_inputs(CifFilterCalculation, namespace='cif_filter', exclude=('cif',))
         spec.expose_inputs(CifSelectCalculation, namespace='cif_select', exclude=('cif',))
         spec.input('cif', valid_type=orm.CifData,
             help='The CifData node that is to be cleaned.')
-        spec.input('parse_engine', valid_type=orm.Str, default=orm.Str('pymatgen'),
+        spec.input('parse_engine', valid_type=orm.Str, default=lambda: orm.Str('pymatgen'),
             help='The atomic structure engine to parse the cif and create the structure.')
-        spec.input('symprec', valid_type=orm.Float, default=orm.Float(5E-3),
+        spec.input('symprec', valid_type=orm.Float, default=lambda: orm.Float(5E-3),
             help='The symmetry precision used by SeeKpath for crystal symmetry refinement.')
-        spec.input('site_tolerance', valid_type=orm.Float, default=orm.Float(5E-4),
+        spec.input('site_tolerance', valid_type=orm.Float, default=lambda: orm.Float(5E-4),
             help='The fractional coordinate distance tolerance for finding overlapping sites (pymatgen only).')
         spec.input('group_cif', valid_type=orm.Group, required=False, non_db=True,
             help='An optional Group to which the final cleaned CifData node will be added.')
