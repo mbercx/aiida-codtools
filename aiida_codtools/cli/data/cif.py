@@ -2,10 +2,9 @@
 # yapf:disable
 """Command line interface script to import CIF files from external databases into `CifData` nodes."""
 
-import click
-
 from aiida.cmdline.params import options
 from aiida.cmdline.utils import decorators, echo
+import click
 
 from . import cmd_data
 
@@ -70,13 +69,14 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
     explicitly for the database, it is advised to use separate groups for different structural databases.
     """
     # pylint: disable=too-many-arguments,too-many-locals,too-many-statements,too-many-branches,import-error
-    import inspect
-    from CifFile.StarFile import StarError
     from datetime import datetime
+    import inspect
     from urllib.error import HTTPError
 
+    from CifFile.StarFile import StarError
     from aiida import orm
     from aiida.plugins import factories
+
     from aiida_codtools.cli.utils.display import echo_utc
 
     if not count_entries and group is None:
@@ -110,7 +110,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
     if database == 'mpds':
 
         if number_species is None:
-            raise click.BadParameter('the number of species has to be defined for the {} database'.format(database))
+            raise click.BadParameter(f'the number of species has to be defined for the {database} database')
 
         query_parameters = {
             'query': {},
@@ -146,16 +146,16 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
 
     if not count_entries:
         click.echo('=' * 80)
-        click.echo('Starting on {}'.format(datetime.utcnow().isoformat()))
-        click.echo('Launch parameters: {}'.format(launch_paramaters))
-        click.echo('Importer parameters: {}'.format(importer_parameters))
-        click.echo('Query parameters: {}'.format(query_parameters))
+        click.echo(f'Starting on {datetime.utcnow().isoformat()}')
+        click.echo(f'Launch parameters: {launch_paramaters}')
+        click.echo(f'Importer parameters: {importer_parameters}')
+        click.echo(f'Query parameters: {query_parameters}')
         click.echo('-' * 80)
 
     try:
         query_results = importer.query(**query_parameters)
     except Exception as exception:  # pylint: disable=broad-except
-        echo.echo_critical('database query failed: {}'.format(exception))
+        echo.echo_critical(f'database query failed: {exception}')
 
     if not count_entries:
         builder = orm.QueryBuilder()
@@ -177,7 +177,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
 
         if source_id in existing_source_ids:
             if verbose:
-                echo_utc('Cif<{}> skipping: already present in group {}'.format(source_id, group.label))
+                echo_utc(f'Cif<{source_id}> skipping: already present in group {group.label}')
             continue
 
         try:
@@ -185,11 +185,11 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
         except (AttributeError, UnicodeDecodeError, StarError, HTTPError) as exception:
             if verbose:
                 name = exception.__class__.__name__
-                echo_utc('Cif<{}> skipping: encountered an error retrieving cif data: {}'.format(source_id, name))
+                echo_utc(f'Cif<{source_id}> skipping: encountered an error retrieving cif data: {name}')
         else:
             if skip_partial_occupancies and cif.has_partial_occupancies:
                 if verbose:
-                    echo_utc('Cif<{}> skipping: contains partial occupancies'.format(source_id))
+                    echo_utc(f'Cif<{source_id}> skipping: contains partial occupancies')
             else:
                 if not dry_run:
                     batch.append(cif)
@@ -201,7 +201,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
                 counter += 1
 
         if not dry_run and counter % batch_count == 0:
-            echo_utc('Storing batch of {} CifData nodes'.format(len(batch)))
+            echo_utc(f'Storing batch of {len(batch)} CifData nodes')
             nodes = [node.store() for node in batch]
             group.add_nodes(nodes)
             batch = []
@@ -210,15 +210,15 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
             break
 
     if count_entries:
-        click.echo('{}'.format(counter))
+        click.echo(f'{counter}')
         return
 
     if not dry_run and batch:
-        echo_utc('Storing batch of {} CifData nodes'.format(len(batch)))
+        echo_utc(f'Storing batch of {len(batch)} CifData nodes')
         nodes = [node.store() for node in batch]
         group.add_nodes(nodes)
 
     click.echo('-' * 80)
-    click.echo('Stored {} new entries'.format(counter))
-    click.echo('Stopping on {}'.format(datetime.utcnow().isoformat()))
+    click.echo(f'Stored {counter} new entries')
+    click.echo(f'Stopping on {datetime.utcnow().isoformat()}')
     click.echo('=' * 80)

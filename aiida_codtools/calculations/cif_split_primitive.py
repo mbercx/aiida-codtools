@@ -2,7 +2,9 @@
 """CalcJob plugin for the `cif_split_primitive` script of the `cod-tools` package."""
 
 import os
+
 from aiida.orm import CifData
+
 from aiida_codtools.calculations.cif_base import CifBaseCalculation
 
 

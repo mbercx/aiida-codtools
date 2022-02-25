@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Setup for the `aiida-codtools` plugin which provides an interface for cod-tools scripts to `aiida-core`."""
 from utils import fastentrypoints  # pylint: disable=unused-import
 
@@ -5,15 +6,16 @@ from utils import fastentrypoints  # pylint: disable=unused-import
 def setup_package():
     """Setup procedure."""
     import json
-    from setuptools import setup, find_packages
+
+    from setuptools import find_packages, setup
 
     filename_setup_json = 'setup.json'
     filename_description = 'README.md'
 
-    with open(filename_setup_json, 'r') as handle:
+    with open(filename_setup_json, 'r', encoding='utf-8') as handle:
         setup_json = json.load(handle)
 
-    with open(filename_description, 'r') as handle:
+    with open(filename_description, 'r', encoding='utf-8') as handle:
         description = handle.read()
 
     setup(

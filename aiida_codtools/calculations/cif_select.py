@@ -2,6 +2,7 @@
 """CalcJob plugin for the `cif_select` script of the `cod-tools` package."""
 
 from aiida.orm import CifData
+
 from aiida_codtools.calculations.cif_base import CifBaseCalculation
 
 

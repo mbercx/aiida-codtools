@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module with CLI utilities to translate command line parameters strings to dictionaries and vice versa."""
 
 import collections
@@ -23,12 +24,13 @@ class CliParameters:
 
     @property
     def parameters(self):
+        """Return the parameters."""
         return self._parameters
 
     @parameters.setter
     def parameters(self, dictionary):
         if not isinstance(dictionary, collections.Mapping):
-            raise TypeError('dictionary should be a mapping but is {}'.format(type(dictionary)))
+            raise TypeError(f'dictionary should be a mapping but is {type(dictionary)}')
 
         self._parameters = {}
 
@@ -45,7 +47,7 @@ class CliParameters:
             string = ''
 
         if not isinstance(string, str):
-            raise TypeError('string has to be a string type, got: {}'.format(type(string)))
+            raise TypeError(f'string has to be a string type, got: {type(string)}')
 
         dictionary = {}
         tokens = [token.strip() for token in shlex.split(string)]
@@ -75,7 +77,7 @@ class CliParameters:
     def from_dictionary(cls, dictionary):
         """Parse a dictionary representing all command line parameters."""
         if not isinstance(dictionary, dict):
-            raise TypeError('dictionary has to be a dict type, got: {}'.format(type(dictionary)))
+            raise TypeError(f'dictionary has to be a dict type, got: {type(dictionary)}')
 
         return cls(dictionary)
 
@@ -95,9 +97,9 @@ class CliParameters:
                 value = [value]
 
             if len(key) == 1:
-                string_key = '-{}'.format(key)
+                string_key = f'-{key}'
             else:
-                string_key = '--{}'.format(key)
+                string_key = f'--{key}'
 
             for sub_value in value:
 
@@ -108,7 +110,7 @@ class CliParameters:
 
                 if not isinstance(sub_value, bool):
                     if ' ' in sub_value:
-                        string_value = "'{}'".format(sub_value)
+                        string_value = f"'{sub_value}'"
                     else:
                         string_value = sub_value
 

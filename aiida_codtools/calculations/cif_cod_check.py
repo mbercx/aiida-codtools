@@ -2,6 +2,7 @@
 """CalcJob plugin for the `cif_cod_check` script of the `cod-tools` package."""
 
 from aiida.orm import Dict
+
 from aiida_codtools.calculations.cif_base import CifBaseCalculation
 
 

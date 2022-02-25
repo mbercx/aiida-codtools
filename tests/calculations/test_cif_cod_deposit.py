@@ -13,6 +13,7 @@ def test_cif_cod_deposit(
     clear_database, fixture_code, fixture_sandbox, fixture_calc_job, generate_cif_data, file_regression
 ):
     """Test a default `CifCodDepositCalculation`."""
+    # pylint: disable=too-many-locals
     entry_point_name = 'codtools.cif_cod_deposit'
 
     parameters = {

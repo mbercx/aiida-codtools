@@ -5,6 +5,7 @@
 from uuid import uuid4 as UUID
 
 from aiida import orm
+
 from aiida_codtools.cli.data.cif import launch_cif_import
 
 

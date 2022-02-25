@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Initialise a text database and profile for pytest."""
 
 import io
 import os
+
 import pytest
 
 pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
@@ -18,6 +20,7 @@ def run_cli_command():
     def _run_cli_command(command, options):
         """Run the command and check the result."""
         import traceback
+
         from click.testing import CliRunner
 
         runner = CliRunner()
@@ -153,10 +156,10 @@ def generate_cif_data():
         """Return `UpfData` node."""
         from aiida.orm import CifData
 
-        filename = os.path.join('tests', 'fixtures', 'cif', '{}.cif'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'cif', f'{element}.cif')
         filepath = os.path.abspath(filename)
 
-        with io.open(filepath, 'r') as handle:
+        with io.open(filepath, 'r', encoding='utf-8') as handle:
             cif = CifData(file=handle.name)
 
         return cif

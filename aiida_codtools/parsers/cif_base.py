@@ -21,10 +21,9 @@ class CifBaseParser(Parser):
     def __init__(self, node):
         super().__init__(node)
         if not issubclass(node.process_class, self._supported_calculation_class):
+            supported = self._supported_calculation_class
             raise exceptions.ParsingError(
-                'Node process class must be a {} but node<{}> has process class {}'.format(
-                    self._supported_calculation_class, node.uuid, node.process_class
-                )
+                f'Node process class must be a {supported} but node<{node.uuid}> has process class {node.process_class}'
             )
 
     def parse(self, **kwargs):

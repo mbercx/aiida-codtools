@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """Calculation function to generate a primitive structure from a `CifData` using Seekpath."""
-from seekpath.hpkot import SymmetryDetectionError
-
 from aiida.common import exceptions
 from aiida.engine import calcfunction
 from aiida.plugins import WorkflowFactory
 from aiida.tools import get_kpoints_path
 from aiida.tools.data.cif import InvalidOccupationsError
+from seekpath.hpkot import SymmetryDetectionError
 
 
 @calcfunction
@@ -50,7 +49,7 @@ def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance):
     extras = {
         'formula_hill': structure.get_formula(mode='hill'),
         'formula_hill_compact': structure.get_formula(mode='hill_compact'),
-        'chemical_system': '-{}-'.format('-'.join(sorted(structure.get_symbols_set()))),
+        'chemical_system': f"-{'-'.join(sorted(structure.get_symbols_set()))}-",
     }
 
     for key in ['spacegroup_international', 'spacegroup_number', 'bravais_lattice', 'bravais_lattice_extended']:

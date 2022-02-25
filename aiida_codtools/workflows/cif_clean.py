@@ -4,7 +4,7 @@
 
 from aiida import orm
 from aiida.common import exceptions
-from aiida.engine import WorkChain, ToContext, if_
+from aiida.engine import ToContext, WorkChain, if_
 from aiida.plugins import CalculationFactory
 
 CifFilterCalculation = CalculationFactory('codtools.cif_filter')  # pylint: disable=invalid-name
@@ -81,7 +81,7 @@ class CifCleanWorkChain(WorkChain):
         inputs.cif = self.inputs.cif
 
         calculation = self.submit(CifFilterCalculation, **inputs)
-        self.report('submitted {}<{}>'.format(CifFilterCalculation.__name__, calculation.uuid))
+        self.report(f'submitted {CifFilterCalculation.__name__}<{calculation.uuid}>')
 
         return ToContext(cif_filter=calculation)
 
@@ -91,7 +91,7 @@ class CifCleanWorkChain(WorkChain):
             node = self.ctx.cif_filter
             self.ctx.cif = node.outputs.cif
         except exceptions.NotExistent:
-            self.report('aborting: CifFilterCalculation<{}> did not return the required cif output'.format(node.uuid))
+            self.report(f'aborting: CifFilterCalculation<{node.uuid}> did not return the required cif output')
             return self.exit_codes.ERROR_CIF_FILTER_FAILED
 
     def run_select_calculation(self):
@@ -101,7 +101,7 @@ class CifCleanWorkChain(WorkChain):
         inputs.cif = self.ctx.cif
 
         calculation = self.submit(CifSelectCalculation, **inputs)
-        self.report('submitted {}<{}>'.format(CifSelectCalculation.__name__, calculation.uuid))
+        self.report(f'submitted {CifSelectCalculation.__name__}<{calculation.uuid}>')
 
         return ToContext(cif_select=calculation)
 
@@ -111,7 +111,7 @@ class CifCleanWorkChain(WorkChain):
             node = self.ctx.cif_select
             self.ctx.cif = node.outputs.cif
         except exceptions.NotExistent:
-            self.report('aborting: CifSelectCalculation<{}> did not return the required cif output'.format(node.uuid))
+            self.report(f'aborting: CifSelectCalculation<{node.uuid}> did not return the required cif output')
             return self.exit_codes.ERROR_CIF_SELECT_FAILED
 
     def should_parse_cif_structure(self):

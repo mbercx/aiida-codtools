@@ -4,6 +4,7 @@
 import copy
 
 from aiida.common import datastructures
+
 from aiida_codtools.calculations.cif_base import CifBaseCalculation
 
 
@@ -56,13 +57,13 @@ class CifCodDepositCalculation(CifBaseCalculation):
 
         # The input file should simply contain the relative filename that contains the CIF to be deposited
         with folder.open(self.options.input_filename, 'w') as handle:
-            handle.write('{}\n'.format(self.filename_cif))
+            handle.write(f'{self.filename_cif}\n')
 
         # Write parameters that relate to the config file to that file and remove them from the CLI parameters
         with folder.open(self.filename_config, 'w') as handle:
             for key in self._config_keys:
                 if key in parameters:
-                    handle.write('{}={}\n'.format(key, parameters.pop(key)))
+                    handle.write(f'{key}={parameters.pop(key)}\n')
 
         cli_parameters = copy.deepcopy(self._default_cli_parameters)
         cli_parameters.update(parameters)

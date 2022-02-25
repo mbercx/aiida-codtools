@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """Command line interface script to launch `CifCleanWorkChain` per node or in bulk."""
 # yapf: disable
-import click
-
 from aiida.cmdline.params import types
 from aiida.cmdline.utils import decorators
+import click
 
 from . import cmd_launch
 
@@ -54,12 +53,13 @@ def launch_cif_clean(cif_filter, cif_select, group_cif_raw, group_cif_clean, gro
     successful, will be added to the `group-structure` group.
     """
     # pylint: disable=too-many-arguments,too-many-locals,too-many-statements,too-many-branches
-    import inspect
     from datetime import datetime
+    import inspect
 
     from aiida import orm
     from aiida.engine import launch
     from aiida.plugins import DataFactory, WorkflowFactory
+
     from aiida_codtools.cli.utils.display import echo_utc
     from aiida_codtools.common.resources import get_default_options
     from aiida_codtools.common.utils import get_input_node
@@ -75,8 +75,8 @@ def launch_cif_clean(cif_filter, cif_select, group_cif_raw, group_cif_clean, gro
             launch_paramaters[arg] = local_vars[arg]
 
     click.echo('=' * 80)
-    click.echo('Starting on {}'.format(datetime.utcnow().isoformat()))
-    click.echo('Launch parameters: {}'.format(launch_paramaters))
+    click.echo(f'Starting on {datetime.utcnow().isoformat()}')
+    click.echo(f'Launch parameters: {launch_paramaters}')
     click.echo('-' * 80)
 
     if group_cif_raw is not None:
@@ -166,9 +166,9 @@ def launch_cif_clean(cif_filter, cif_select, group_cif_raw, group_cif_clean, gro
 
         if daemon:
             workchain = launch.submit(CifCleanWorkChain, **inputs)
-            echo_utc('CifData<{}> submitting: {}<{}>'.format(cif.pk, CifCleanWorkChain.__name__, workchain.pk))
+            echo_utc(f'CifData<{cif.pk}> submitting: {CifCleanWorkChain.__name__}<{workchain.pk}>')
         else:
-            echo_utc('CifData<{}> running: {}'.format(cif.pk, CifCleanWorkChain.__name__))
+            echo_utc(f'CifData<{cif.pk}> running: {CifCleanWorkChain.__name__}')
             _, workchain = launch.run_get_node(CifCleanWorkChain, **inputs)
 
         if group_workchain is not None:
@@ -180,6 +180,6 @@ def launch_cif_clean(cif_filter, cif_select, group_cif_raw, group_cif_clean, gro
             break
 
     click.echo('-' * 80)
-    click.echo('Submitted {} new workchains'.format(counter))
-    click.echo('Stopping on {}'.format(datetime.utcnow().isoformat()))
+    click.echo(f'Submitted {counter} new workchains')
+    click.echo(f'Stopping on {datetime.utcnow().isoformat()}')
     click.echo('=' * 80)

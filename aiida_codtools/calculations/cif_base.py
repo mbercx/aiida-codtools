@@ -58,8 +58,9 @@ class CifBaseCalculation(CalcJob):
         for key in ['num_machines', 'num_mpiprocs_per_machine', 'tot_num_mpiprocs']:
             if key in resources and resources[key] != 1:
                 raise exceptions.FeatureNotAvailable(
-                    "Cannot set resource '{}' to value '{}' for {}: parallelization is not supported, "
-                    "only a value of '1' is accepted.".format(key, resources[key], self.__class__.__name__))
+                    f'Cannot set resource `{key}` to value `{resources[key]}` for `{self.__class__.__name__}`: '
+                    'parallelization is not supported, only a value of `1` is accepted.'
+                )
 
     def prepare_for_submission(self, folder):
         """This method is called prior to job submission with a set of calculation input nodes.

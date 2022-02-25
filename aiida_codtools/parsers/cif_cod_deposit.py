@@ -3,8 +3,8 @@
 
 import re
 
-from aiida_codtools.parsers.cif_base import CifBaseParser
 from aiida_codtools.calculations.cif_cod_deposit import CifCodDepositCalculation
+from aiida_codtools.parsers.cif_base import CifBaseParser
 
 
 class CifCodDepositParser(CifBaseParser):

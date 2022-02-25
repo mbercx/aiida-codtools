@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Pre-commit script to ensure that version numbers in `setup.json` and `aiida_codtools/__init__.py` match."""
-import os
 import json
+import os
 import sys
 
 import click
@@ -15,7 +15,7 @@ FILEPATH_SETUP_JSON = os.path.join(FILEPATH_ROOT, FILENAME_SETUP_JSON)
 
 def get_setup_json():
     """Return the `setup.json` as a python dictionary """
-    with open(FILEPATH_SETUP_JSON, 'r') as handle:
+    with open(FILEPATH_SETUP_JSON, 'r', encoding='utf-8') as handle:
         setup_json = json.load(handle)
 
     return setup_json
@@ -23,7 +23,7 @@ def get_setup_json():
 
 @click.group()
 def cli():
-    pass
+    """Main command group."""
 
 
 @cli.command('version')
@@ -37,12 +37,12 @@ def validate_version():
 
     if version != setup_content['version']:
         click.echo('Version number mismatch detected:')
-        click.echo('Version number in `{}`: {}'.format(FILENAME_SETUP_JSON, setup_content['version']))
-        click.echo('Version number in `{}/__init__.py`: {}'.format('aiida_codtools', version))
-        click.echo('Updating version in `{}` to: {}'.format(FILENAME_SETUP_JSON, version))
+        click.echo(f"Version number in `{FILENAME_SETUP_JSON}`: {setup_content['version']}")
+        click.echo(f'Version number in `aiida_codtools/__init__.py`: {version}')
+        click.echo(f'Updating version in `{FILENAME_SETUP_JSON}` to: {version}')
 
         setup_content['version'] = version
-        with open(FILEPATH_SETUP_JSON, 'w') as handle:
+        with open(FILEPATH_SETUP_JSON, 'w', encoding='utf-8') as handle:
             # Write with indentation of two spaces and explicitly define separators to not have spaces at end of lines
             json.dump(setup_content, handle, indent=2, separators=(',', ': '))
 

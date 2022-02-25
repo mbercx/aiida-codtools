@@ -2,13 +2,12 @@
 """Command line interface script to launch almost any cod-tools calculation through AiiDA."""
 # yapf: disable
 
-import click
-
 from aiida.cmdline.params import options, types
 from aiida.cmdline.utils import decorators
+import click
 
-from ..utils import launch, validate
 from . import cmd_launch
+from ..utils import launch, validate
 
 
 @cmd_launch.command('cod-tools')
@@ -34,6 +33,7 @@ def launch_calculation(code, cif, parameters, daemon, dry_run):
     """
     from aiida import orm
     from aiida.plugins import factories
+
     from aiida_codtools.cli.utils.parameters import CliParameters
     from aiida_codtools.common.resources import get_default_options
 
