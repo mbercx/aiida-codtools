@@ -50,8 +50,9 @@
             "yapf~=0.28.0"
         ],
         "docs": [
-            "Sphinx",
             "docutils",
+            "jinja2>=3.0",
+            "sphinx~=4.1",
             "sphinx_rtd_theme"
         ]
     },
