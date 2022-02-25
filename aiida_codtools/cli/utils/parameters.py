@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Module with CLI utilities to translate command line parameters strings to dictionaries and vice versa."""
 
-import collections
+from collections.abc import Mapping
 import itertools
 import shlex
 
@@ -29,7 +29,7 @@ class CliParameters:
 
     @parameters.setter
     def parameters(self, dictionary):
-        if not isinstance(dictionary, collections.Mapping):
+        if not isinstance(dictionary, Mapping):
             raise TypeError(f'dictionary should be a mapping but is {type(dictionary)}')
 
         self._parameters = {}
