@@ -3,7 +3,7 @@
 """Tests for the `CifCodCheckParser`."""
 
 
-def test_cif_cod_check(clear_database, fixture_localhost, fixture_calc_job_node, generate_parser):
+def test_cif_cod_check(aiida_profile_clean, fixture_localhost, fixture_calc_job_node, generate_parser):
     """Test a default `cif_cod_check` calculation."""
     entry_point_calc_job = 'codtools.cif_cod_check'
     entry_point_parser = 'codtools.cif_cod_check'

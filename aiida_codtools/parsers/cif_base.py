@@ -8,7 +8,7 @@ from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory, DataFactory
 
 CifBaseCalculation = CalculationFactory('codtools.cif_base')  # pylint: disable=invalid-name
-CifData = DataFactory('cif')  # pylint: disable=invalid-name
+CifData = DataFactory('core.cif')  # pylint: disable=invalid-name
 
 
 class CifBaseParser(Parser):

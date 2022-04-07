@@ -3,7 +3,7 @@
 """Tests for the `CifCellContentsParser`."""
 
 
-def test_cif_cell_contents_standard(clear_database, fixture_localhost, fixture_calc_job_node, generate_parser):
+def test_cif_cell_contents_standard(aiida_profile_clean, fixture_localhost, fixture_calc_job_node, generate_parser):
     """Test a default `cif_cell_contents` calculation."""
     entry_point_calc_job = 'codtools.cif_cell_contents'
     entry_point_parser = 'codtools.cif_cell_contents'

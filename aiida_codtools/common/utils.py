@@ -14,23 +14,10 @@ def get_input_node(cls, value):
     from aiida import orm
 
     if cls in (orm.Bool, orm.Float, orm.Int, orm.Str):
-
-        result = orm.QueryBuilder().append(cls, filters={'attributes.value': value}).first()
-
-        if result is None:
-            node = cls(value).store()
-        else:
-            node = result[0]
-
+        result = orm.QueryBuilder().append(cls, filters={'attributes.value': value}).first(flat=True)
     elif cls is orm.Dict:
-        result = orm.QueryBuilder().append(cls, filters={'attributes': {'==': value}}).first()
-
-        if result is None:
-            node = cls(dict=value).store()
-        else:
-            node = result[0]
-
+        result = orm.QueryBuilder().append(cls, filters={'attributes': {'==': value}}).first(flat=True)
     else:
         raise NotImplementedError
 
-    return node
+    return result or cls(value).store()

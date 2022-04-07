@@ -3,7 +3,7 @@
 """Tests for the `CifCodDepositParser`."""
 
 
-def test_invalid_configuration(clear_database, fixture_localhost, fixture_calc_job_node, generate_parser):
+def test_invalid_configuration(aiida_profile_clean, fixture_localhost, fixture_calc_job_node, generate_parser):
     """Test a default `cif_cod_deposit` calculation."""
     entry_point_calc_job = 'codtools.cif_cod_deposit'
     entry_point_parser = 'codtools.cif_cod_deposit'

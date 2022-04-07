@@ -28,7 +28,7 @@ from . import cmd_launch
     '-w', '--group-workchain', required=False, type=types.GroupParamType(),
     help='Group to which to add the WorkChain nodes.')
 @click.option(
-    '-N', '--node', type=types.DataParamType(sub_classes=('aiida.data:cif',)), default=None, required=False,
+    '-N', '--node', type=types.DataParamType(sub_classes=('aiida.data:core.cif',)), default=None, required=False,
     help='Specify the explicit CifData node for which to run the clean workchain.')
 @click.option(
     '-M', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
@@ -64,7 +64,7 @@ def launch_cif_clean(cif_filter, cif_select, group_cif_raw, group_cif_clean, gro
     from aiida_codtools.common.resources import get_default_options
     from aiida_codtools.common.utils import get_input_node
 
-    CifData = DataFactory('cif')  # pylint: disable=invalid-name
+    CifData = DataFactory('core.cif')  # pylint: disable=invalid-name
     CifCleanWorkChain = WorkflowFactory('codtools.cif_clean')  # pylint: disable=invalid-name
 
     # Collect the dictionary of not None parameters passed to the launch script and print to screen

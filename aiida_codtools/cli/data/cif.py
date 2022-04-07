@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-# yapf:disable
 """Command line interface script to import CIF files from external databases into `CifData` nodes."""
-
 from aiida.cmdline.params import options
 from aiida.cmdline.utils import decorators, echo
 import click
@@ -17,50 +15,69 @@ def cmd_cif():
 @cmd_cif.command('import')
 @options.GROUP(help='Group in which to store the raw imported CifData nodes.', required=False)
 @click.option(
-    '-d', '--database', type=click.Choice(['cod', 'icsd', 'mpds']), default='cod', show_default=True,
-    help='Select the database to import from.')
+    '-d',
+    '--database',
+    type=click.Choice(['cod', 'icsd', 'mpds']),
+    default='cod',
+    show_default=True,
+    help='Select the database to import from.'
+)
 @click.option(
-    '-M', '--max-entries', type=click.INT, default=None, show_default=True, required=False,
-    help='Maximum number of entries to import.')
+    '-M',
+    '--max-entries',
+    type=click.INT,
+    default=None,
+    show_default=True,
+    required=False,
+    help='Maximum number of entries to import.'
+)
 @click.option(
-    '-x', '--number-species', type=click.INT, default=None, show_default=True,
-    help='Import only cif files with this number of different species.')
+    '-x',
+    '--number-species',
+    type=click.INT,
+    default=None,
+    show_default=True,
+    help='Import only cif files with this number of different species.'
+)
 @click.option(
-    '-o', '--skip-partial-occupancies', is_flag=True, default=False,
-    help='Skip entries that have partial occupancies.')
+    '-o', '--skip-partial-occupancies', is_flag=True, default=False, help='Skip entries that have partial occupancies.'
+)
 @click.option(
-    '-S', '--importer-server', type=click.STRING, required=False,
-    help='Optional server address thats hosts the database.')
+    '-S',
+    '--importer-server',
+    type=click.STRING,
+    required=False,
+    help='Optional server address thats hosts the database.'
+)
+@click.option('-H', '--importer-db-host', type=click.STRING, required=False, help='Optional hostname for the database.')
+@click.option('-D', '--importer-db-name', type=click.STRING, required=False, help='Optional name for the database.')
 @click.option(
-    '-H', '--importer-db-host', type=click.STRING, required=False,
-    help='Optional hostname for the database.')
+    '-P', '--importer-db-password', type=click.STRING, required=False, help='Optional password for the database.'
+)
+@click.option('-U', '--importer-api-url', type=click.STRING, required=False, help='Optional API url for the database.')
+@click.option('-K', '--importer-api-key', type=click.STRING, required=False, help='Optional API key for the database.')
 @click.option(
-    '-D', '--importer-db-name', type=click.STRING, required=False,
-    help='Optional name for the database.')
+    '-c',
+    '--count-entries',
+    is_flag=True,
+    default=False,
+    help='Return the number of entries the query yields and exit.'
+)
 @click.option(
-    '-P', '--importer-db-password', type=click.STRING, required=False,
-    help='Optional password for the database.')
-@click.option(
-    '-U', '--importer-api-url', type=click.STRING, required=False,
-    help='Optional API url for the database.')
-@click.option(
-    '-K', '--importer-api-key', type=click.STRING, required=False,
-    help='Optional API key for the database.')
-@click.option(
-    '-c', '--count-entries', is_flag=True, default=False,
-    help='Return the number of entries the query yields and exit.')
-@click.option(
-    '-b', '--batch-count', type=click.INT, default=1000, show_default=True,
+    '-b',
+    '--batch-count',
+    type=click.INT,
+    default=1000,
+    show_default=True,
     help='Store imported cif nodes in batches of this size. This reduces the number of database operations '
-         'but if the script dies before a checkpoint the imported cif nodes of the current batch are lost.')
-@click.option(
-    '-n', '--dry-run', is_flag=True, default=False,
-    help='Perform a dry-run.')
-@options.VERBOSE(help='Print entries that are skipped.')
+    'but if the script dies before a checkpoint the imported cif nodes of the current batch are lost.'
+)
+@click.option('-n', '--dry-run', is_flag=True, default=False, help='Perform a dry-run.')
 @decorators.with_dbenv()
-def launch_cif_import(group, database, max_entries, number_species, skip_partial_occupancies, importer_server,
-    importer_db_host, importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries,
-    batch_count, dry_run, verbose):
+def launch_cif_import(
+    group, database, max_entries, number_species, skip_partial_occupancies, importer_server, importer_db_host,
+    importer_db_name, importer_db_password, importer_api_url, importer_api_key, count_entries, batch_count, dry_run
+):
     """Import cif files from various structural databases, store them as CifData nodes and add them to a Group.
 
     Note that to determine which cif files are already contained within the Group in order to avoid duplication,
@@ -77,7 +94,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
     from aiida import orm
     from aiida.plugins import factories
 
-    from aiida_codtools.cli.utils.display import echo_utc
+    now = datetime.utcnow().isoformat
 
     if not count_entries and group is None:
         raise click.BadParameter('you have to specify a group unless the option --count-entries is specified')
@@ -112,10 +129,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
         if number_species is None:
             raise click.BadParameter(f'the number of species has to be defined for the {database} database')
 
-        query_parameters = {
-            'query': {},
-            'collection': 'structures'
-        }
+        query_parameters = {'query': {}, 'collection': 'structures'}
 
         if number_species == 1:
             query_parameters['query']['classes'] = 'unary'
@@ -176,32 +190,32 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
         source_id = entry.source['id']
 
         if source_id in existing_source_ids:
-            if verbose:
-                echo_utc(f'Cif<{source_id}> skipping: already present in group {group.label}')
+            echo.echo_report(f'{now()} | Cif<{source_id}> skipping: already present in group {group.label}')
             continue
 
         try:
             cif = entry.get_cif_node()
         except (AttributeError, UnicodeDecodeError, StarError, HTTPError) as exception:
-            if verbose:
-                name = exception.__class__.__name__
-                echo_utc(f'Cif<{source_id}> skipping: encountered an error retrieving cif data: {name}')
+            name = exception.__class__.__name__
+            echo.echo_info(f'{now()} | Cif<{source_id}> skipping: encountered an error retrieving cif data: {name}')
         else:
             if skip_partial_occupancies and cif.has_partial_occupancies:
-                if verbose:
-                    echo_utc(f'Cif<{source_id}> skipping: contains partial occupancies')
+                echo.echo_info(f'{now()} | Cif<{source_id}> skipping: contains partial occupancies')
             else:
                 if not dry_run:
                     batch.append(cif)
-                    template = 'Cif<{}> adding: new CifData<{}> to group {}'
+                    echo.echo_report(
+                        f'{now()} | Cif<{source_id}> adding: new CifData<{cif.uuid}> to group {group.label}'
+                    )
                 else:
-                    template = 'Cif<{}> would have added: CifData<{}> to group {}'
+                    echo.echo_report(
+                        f'{now()} | Cif<{source_id}> would have added: CifData<{cif.uuid}> to group {group.label}'
+                    )
 
-                echo_utc(template.format(source_id, cif.uuid, group.label))
                 counter += 1
 
         if not dry_run and counter % batch_count == 0:
-            echo_utc(f'Storing batch of {len(batch)} CifData nodes')
+            echo.echo_report(f'{now()} | Storing batch of {len(batch)} CifData nodes')
             nodes = [node.store() for node in batch]
             group.add_nodes(nodes)
             batch = []
@@ -214,7 +228,7 @@ def launch_cif_import(group, database, max_entries, number_species, skip_partial
         return
 
     if not dry_run and batch:
-        echo_utc(f'Storing batch of {len(batch)} CifData nodes')
+        echo.echo_report(f'{now()} | Storing batch of {len(batch)} CifData nodes')
         nodes = [node.store() for node in batch]
         group.add_nodes(nodes)
 

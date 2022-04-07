@@ -10,7 +10,7 @@ from aiida_codtools.common.resources import get_default_options
 
 
 def test_cif_cod_deposit(
-    clear_database, fixture_code, fixture_sandbox, fixture_calc_job, generate_cif_data, file_regression
+    aiida_profile_clean, fixture_code, fixture_sandbox, fixture_calc_job, generate_cif_data, file_regression
 ):
     """Test a default `CifCodDepositCalculation`."""
     # pylint: disable=too-many-locals

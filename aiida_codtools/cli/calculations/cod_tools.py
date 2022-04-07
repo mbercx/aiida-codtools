@@ -13,7 +13,7 @@ from ..utils import launch, validate
 @cmd_launch.command('cod-tools')
 @options.CODE(required=True, help='Code that references a supported cod-tools script.')
 @click.option(
-    '-N', '--node', 'cif', type=types.DataParamType(sub_classes=('aiida.data:cif',)), required=True,
+    '-N', '--node', 'cif', type=types.DataParamType(sub_classes=('aiida.data:core.cif',)), required=True,
     help='CifData node to use as input.')
 @click.option('-p', '--parameters', type=click.STRING, help='Command line parameters.')
 @click.option(

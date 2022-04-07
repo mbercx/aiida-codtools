@@ -3,7 +3,7 @@
 """Tests for the `CifSplitPrimitiveParser`."""
 
 
-def test_cif_split_primitive(clear_database, fixture_localhost, fixture_calc_job_node, generate_parser):
+def test_cif_split_primitive(aiida_profile_clean, fixture_localhost, fixture_calc_job_node, generate_parser):
     """Test a default `cif_split_primitive` calculation."""
     entry_point_calc_job = 'codtools.cif_split_primitive'
     entry_point_parser = 'codtools.cif_split_primitive'
