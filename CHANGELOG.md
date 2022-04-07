@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.0
+
+## Changes
+- Add support for `aiida-core~=2.0` [[48490bf4]](https://github.com/aiidateam/aiida-codtools/commit/48490bf44f63ed1f7383636085ea5eb6d6d3d57e)
+- Drop Python 3.6 and 3.7 support [[882a4750]](https://github.com/aiidateam/aiida-codtools/commit/882a47503828d33e851086ccba3fec87c59d66b4)
+
+
 ## v2.2.0
 
 ## Changes
