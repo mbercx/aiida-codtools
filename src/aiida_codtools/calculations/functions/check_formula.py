@@ -5,22 +5,25 @@ import re
 
 from CifFile import StarError
 from aiida.engine import workfunction
-from aiida.plugins import WorkflowFactory
+from aiida.plugins import DataFactory, WorkflowFactory
 import numpy as np
 
+CifData = DataFactory('cif')
 
-def get_formula_from_cif(cif):
+
+def get_formula_from_cif(cif: CifData) -> str:
     """
-    Semplification of aiida.orm.cif.get_formulae
+    Simplification of ``aiida.orm.cif.get_formulae``.
     Works for MPDS cif files as well.
     """
     formula_tags = ('_chemical_formula_sum', '_pauling_file_chemical_formula')
-    datablock = cif.values[cif.values.keys()[0]]
-    formula = None
-    for formula_tag in formula_tags:
-        if formula_tag in datablock.keys():
-            formula = datablock[formula_tag]
-            break
+    datablock = cif.values.first_block()
+    formula = next(iter(datablock.get(tag) for tag in formula_tags))
+
+    if formula is None:
+        pauling_phase = datablock.get('_pauling_file_phase')
+        formula = pauling_phase if pauling_phase is None else pauling_phase.split('/')[0]
+
     return formula
 
 
@@ -74,11 +77,7 @@ def parse_formula_from_structure(structure):
     """
     Returns a dictionary with the elements of a StructureData and their quantities.
     """
-    formula = {}
-    for site in structure.get_pymatgen().sites:
-        for element, count in site.species.items():
-            formula[element.symbol] = formula.get(element.symbol, 0) + count
-    return formula
+    return structure.get_pymatgen().composition.get_el_amt_dict()
 
 
 class MissingElementsError(Exception):
@@ -117,7 +116,7 @@ def _check_formula(cif, structure):
 
     report += f'cif [{formula_c}]  structure [{formula_s}]'
 
-    has_partial_occupancies = structure.get_extra('has_partial_occupancies')
+    has_partial_occupancies = structure.get_extra('partial_occupancies')
     if has_partial_occupancies:
         report += ' | Partial occupancies'
 
