@@ -8,13 +8,6 @@ from aiida.tools.data.cif import InvalidOccupationsError
 from seekpath.hpkot import SymmetryDetectionError
 
 
-def has_partial_occupancies(structure):
-    """
-    Detect if a structure has partial occupancies (vacancies/substitutions).
-    """
-    return not structure.get_pymatgen().is_ordered
-
-
 @calcfunction
 def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance, occupancy_tolerance):
     # pylint: disable=too-many-return-statements
@@ -65,7 +58,6 @@ def primitive_structure_from_cif(cif, parse_engine, symprec, site_tolerance, occ
         'formula_hill': structure.get_formula(mode='hill'),
         'formula_hill_compact': structure.get_formula(mode='hill_compact'),
         'chemical_system': f"-{'-'.join(sorted(structure.get_symbols_set()))}-",
-        'has_partial_occupancies': has_partial_occupancies(structure),
     }
 
     for key in ['spacegroup_international', 'spacegroup_number', 'bravais_lattice', 'bravais_lattice_extended']:

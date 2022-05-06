@@ -116,7 +116,7 @@ def _check_formula(cif, structure):
 
     report += f'cif [{formula_c}]  structure [{formula_s}]'
 
-    has_partial_occupancies = structure.get_extra('partial_occupancies')
+    has_partial_occupancies = not structure.get_pymatgen().is_ordered
     if has_partial_occupancies:
         report += ' | Partial occupancies'
 
