@@ -155,7 +155,7 @@ def launch_cif_import(
             # actually apply the filtering in the import here.
             query_parameters['query']['classes'] = 'multinary'
 
-        if element is not None:
+        if element:
             query_parameters['query']['elements'] = '-'.join(element)
 
     else:
@@ -163,7 +163,7 @@ def launch_cif_import(
         if number_species is not None:
             query_parameters['number_of_elements'] = number_species
 
-        if element is not None:
+        if element:
             query_parameters['element'] = ' '.join(element)
 
     # Collect the dictionary of not None parameters passed to the launch script and print to screen
