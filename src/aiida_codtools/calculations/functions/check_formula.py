@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """Work function to check the composition of a `StructureData` against the chemical formula of a CifData node."""
-
-import re
-
 from CifFile import StarError
 from aiida.engine import workfunction
 from aiida.plugins import DataFactory, WorkflowFactory
@@ -27,59 +24,6 @@ def get_formula_from_cif(cif: CifData) -> str:
     return formula
 
 
-# this function will be added to aiida.orm.nodes.data.cif
-def parse_formula(formula):
-    """
-    Parses the Hill formulae. Does not need spaces as separators.
-    Works also for partial occupancies and for chemical groups enclosed in round/square/curly brackets.
-    Elements are counted and a dictionary is returned.
-    e.g.  'C[NH2]3NO3'  -->  {'C': 1, 'N': 4, 'H': 6, 'O': 3}
-    """
-
-    def chemcount_str_to_number(string):
-        if not string:
-            quantity = 1
-        else:
-            quantity = float(string)
-            if quantity.is_integer():
-                quantity = int(quantity)
-        return quantity
-
-    contents = {}
-
-    # split blocks with parentheses
-    for block in re.split(r'(\([^\)]*\)[^A-Z\(\[\{]*|\[[^\]]*\][^A-Z\(\[\{]*|\{[^\}]*\}[^A-Z\(\[\{]*)', formula):
-        if not block:  # block is void
-            continue
-
-        # get molecular formula (within parentheses) & count
-        group = re.search(r'[\{\[\(](.+)[\}\]\)]([\.\d]*)', block)
-        if group is None:  # block does not contain parentheses
-            molformula = block
-            molcount = 1
-        else:
-            molformula = group.group(1)
-            molcount = chemcount_str_to_number(group.group(2))
-
-        for part in re.findall(r'[A-Z][^A-Z\s]*', molformula.replace(' ', '')):  # split at uppercase letters
-            match = re.match(r'(\D+)([\.\d]+)?', part)  # separates element and count
-
-            if match is None:
-                continue
-
-            species = match.group(1)
-            quantity = chemcount_str_to_number(match.group(2)) * molcount
-            contents[species] = contents.get(species, 0) + quantity
-    return contents
-
-
-def parse_formula_from_structure(structure):
-    """
-    Returns a dictionary with the elements of a StructureData and their quantities.
-    """
-    return structure.get_pymatgen().composition.get_el_amt_dict()
-
-
 class MissingElementsError(Exception):
     """
     An exception that will be raised if the parsed structure misses some elements or has additional elements with
@@ -99,6 +43,8 @@ def _check_formula(cif, structure):
     Compare CIF formula against StructureData formula and report any inconsistency.
     """
     # pylint: disable=too-many-locals
+    from aiida.orm.nodes.data.cif import parse_formula as parse_formula_from_cif
+
     report = ''
     formula_s = structure.get_formula('hill', ' ')
     formula_c = None
@@ -121,8 +67,8 @@ def _check_formula(cif, structure):
         report += ' | Partial occupancies'
 
     # get formula dictionaries {element: count}
-    formuladic_s = parse_formula_from_structure(structure)
-    formuladic_c = parse_formula(formula_c)
+    formuladic_s = structure.get_pymatgen().composition.get_el_amt_dict()
+    formuladic_c = parse_formula_from_cif(formula_c)
     # remove elements with zero occupancy
     for key in [key for key, value in formuladic_c.items() if value == 0.]:
         formuladic_c.pop(key)
